@@ -1,6 +1,17 @@
 #include <algorithm>
 #include "utils/graph.h"
 
+// for Recurrent Neural Network implementation
+bool Node::CheckInputNode(SNode node){
+    if(node->srcnodes_size() == 0) return true;
+    else return false;
+}
+
+bool Node::CheckOutputNode(SNode node){
+    if(node->dstnodes_size() == 0) return true;
+    else return false;
+}
+
 const string Graph::ToString() const {
   map<string, string> info;
   return ToString(info);
