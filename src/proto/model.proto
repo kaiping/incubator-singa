@@ -1,4 +1,3 @@
-//This is kaiping
 package singa;
 enum MsgType{
   kGet=0;
@@ -85,6 +84,8 @@ message ModelProto{
 message NetProto{
   repeated LayerProto layer=1;
   optional PartitionType partition_type=3 [default=kNone];
+  // hyper-parameters for Recurrent Neural Network implementation
+  optional int32 win_size = 4;
 }
 
 message ParamProto {
@@ -195,6 +196,9 @@ message LayerProto {
   optional RGBImage rgbimage_param=34;
   optional SoftmaxLossProto softmaxloss_param = 29;
   optional TanhProto tanh_param=30;
+  
+  // hyper-parameters for Recurrent Neural Network
+  optional bool unroll_decision = 31 [default=false];
 }
 
 message RGBImage {
