@@ -109,6 +109,7 @@ private:
     string color_, weight_, shape_;
 
     // for Recurrent Neural Network implementation
+    int id;//corresponding to the occurence order in vector "nodes_"
     int timestamp;
 };
 
@@ -125,12 +126,16 @@ public:
     {
         nodes_.push_back(make_shared<Node>(name, origin));
         name2node_[name]=nodes_.back();
+        // for Recurrent Neural Network implementation
+        nodes_.back().id = nodes.size() - 1;
         return nodes_.back();
     }
     const SNode& AddNode(string name)
     {
         nodes_.push_back(make_shared<Node>(name));
         name2node_[name]=nodes_.back();
+        // for Recurrent Neural Network implementation
+        nodes_.back().id = nodes.size() - 1;
         return nodes_.back();
     }
 
@@ -191,15 +196,28 @@ public:
                              std::stack<string> *stack);
 
     // for Recurrent Neural Network implementation
-    //--Here
-    std::stack<SNode> DFSForDetectCycleAndSaveCycle(SNode node_v);//start from node v to detect whether there is a cycle
-    bool DetectCycleAndSaveCycle();
-    std::vector<pair<SNode srcnode, SNode dstnode>> ChangeCycleToEdges(Stack<SNode> cycle_stack)
-    void BreakEdge(pair<SNode srcnode, SNode dstnode>);
-    bool CheckCorrectBreaking(pair<SNode srcnode, SNode dstnode>);
 
+    // Function1 - detect cycle in the graph and save the graph (now can only deal with the single-cycle situation)
+    void DetectCycleAndSaveCycle();
+
+    // Function2 - start from node v to detect whether there is a cycle
+    std::stack<SNode> DFSForDetectCycleAndSaveCycle(SNode node_v);
+
+    bool hasCycle();
+    std::stack<SNode> cycle();
+
+    //std::vector<std::pair<SNode, SNode>> ChangeCycleToEdges(std::stack<SNode> cycle_stack)
+    //void BreakEdge(std::pair<SNode, SNode>);
+    //bool CheckCorrectBreaking(std::pair<SNode, SNode>);
+    //void ConstructUnrolledGraph();
 private:
     vector<SNode> nodes_;
     map<string, SNode> name2node_;
+
+    // for Recurrent Neural Network
+    bool marked[];
+    int edgeTo[];// to record the pre-visited node order
+    stack<SNode> cycle;
+    bool onStack[];
 };
 #endif // INCLUDE_UTILS_GRAPH_H_

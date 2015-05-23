@@ -156,4 +156,57 @@ std::pair<SNode, SNode> Graph::InsertBridgeNode(SNode srcnode, SNode dstnode){
   return pair<SNode, SNode>{src, dst};
 }
 
+// for Recurrent Neural Network Implementation
+// Function1 - detect cycle in the graph and save the graph (now can only deal with the single-cycle situation)
+void Graph::DetectCycleAndSaveCycle(){
+    onStack = new bool[nodes_.size()];//?need to be deleted later
+    edgeTo = new SNode[nodes_.size()];
+    marked = new bool[nodes_.size()];
+    for(int v = 0; v < nodes_.size(); v++)
+    {
+        if(marked[v] != true)//node v is not visited
+        {
+            DFSForDetectCycleAndSaveCycle(nodes_[v]);
+        }
+    }
+}
 
+// Function2 - start from node v to detect whether there is a cycle
+std::stack<SNode> Graph::DFSForDetectCycleAndSaveCycle(SNode node_v){
+    onStack[node_v.id] = true;
+    marked[node_v.id] = true;
+    for(int i = 0; i < node_v.dstnodes_.size(); i++)
+    {
+        if(hasCycle()==true)//还未实现
+        {
+            return cycle{};
+        }
+        if(marked[node_v.dstnodes_[i].id] != true)//this node is not visited
+        {
+            edgeTo[node_v.dstnodes_[i].id] = node_v.id;
+            DFSForDetectCycleAndSaveCycle(node_v.dstnodes_[i]);
+        }
+        else if(onStack[node_v.dstnodes_[i].id] == true)
+        {
+            std::stack<SNode> cycle;
+            for(int j = node_v.id; j != node_v.dstnodes_[i].id; j = edgeTo[j])
+            {
+                cycle.push(nodes_[j]);//push the node corresponding to the id "j" into the stack "cycle"
+            }
+            cycle.push(node_v.dstnodes_[i]);
+            cycle.push(node_v);
+        }
+    }
+    onStack[node_v.id] = false;
+
+}
+
+bool Graph::hasCycle()
+{
+    return cycle != NULL;
+}
+
+std::stack<SNode> Graph::cycle()
+{
+    return cycle;
+}
