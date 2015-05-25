@@ -175,7 +175,7 @@ std::pair<SNode, SNode> Graph::InsertBridgeNode(SNode srcnode, SNode dstnode)
 
 // for Recurrent Neural Network Implementation
 // Function1 - detect cycle in the graph and save the graph (now can only deal with the single-cycle situation)
-void Graph::DetectCycleAndSaveCycle()
+void Graph::DetectCycleAndSaveCycle()//save the cycle in the graph
 {
     onStack = new bool[nodes_.size()];//?need to be deleted later
     edgeTo = new SNode[nodes_.size()];
@@ -190,7 +190,7 @@ void Graph::DetectCycleAndSaveCycle()
 }
 
 // Function2 - start from node v to detect whether there is a cycle
-std::stack<SNode> Graph::DFSForDetectCycleAndSaveCycle(SNode node_v)
+void Graph::DFSForDetectCycleAndSaveCycle(SNode node_v)
 {
     onStack[node_v.id] = true;
     marked[node_v.id] = true;
@@ -198,7 +198,7 @@ std::stack<SNode> Graph::DFSForDetectCycleAndSaveCycle(SNode node_v)
     {
         if(hasCycle()==true)
         {
-            return cycle();
+            return;//?correct?
         }
         if(marked[node_v.dstnodes_[i].id] != true)//this node is not visited
         {
@@ -226,10 +226,10 @@ bool Graph::hasCycle()
     return cycle != NULL;
 }
 
-std::stack<SNode> Graph::cycle()
-{
-    return cycle;
-}
+//std::stack<SNode> Graph::cycle()
+//{
+//    return cycle;
+//}
 
 // Function3 - change the cycle information to the edge (node pairs) representation
 
@@ -247,9 +247,8 @@ std::stack<SNode> Graph::cycle()
 //    return cycle_edges;
 //}
 
-std::vector<std::pair<SNode, SNode>> ChangeCycleToEdges()
+void ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes)
 {
-    std::vector<std::pair<SNode, SNode>> cycle_edges;
     while(cycle.size() > 1)
     {
         std::pair<SNode, SNode> one_edge;
@@ -258,7 +257,6 @@ std::vector<std::pair<SNode, SNode>> ChangeCycleToEdges()
         one_edge.second = cycle.top();
         cycle_edges.push_back(one_edge);
     }
-    return cycle_edges;
 }
 
 // Function4 - break one edge in the cycle and update the edge information
@@ -294,9 +292,3 @@ bool CheckCorrectBreaking(std::pair<SNode, SNode> break_edge)
     if((cnt_indegree_zero > 1) || (cnt_outdegree_zero > 1)) return false;
     else return true;
 }
-
-// Function7 - if the breaking is correct, store corresponding info; otherwise, recover the edge and try another breaking
-    void ConstructUnrolledGraph()
-    {
-        //HERE
-    }

@@ -205,10 +205,10 @@ public:
 
     // for Function2
     bool hasCycle();
-    std::stack<SNode> cycle();
+    //std::stack<SNode> cycle();
 
     // Function3 - change the cycle information to the edge (node pairs) representation
-    std::vector<std::pair<SNode, SNode>> ChangeCycleToEdges(std::stack<SNode> cycle_stack);
+    void ChangeCycleToEdges(std::stack<SNode> cycle_stack);
 
     // Function4 - break one edge in the cycle and update the edge information
     void BreakEdge(std::pair<SNode, SNode> break_edge);//update the edge information in the whole graph according to the edge
@@ -219,8 +219,6 @@ public:
     // Function6 - check whether the breaking is correct
     bool CheckCorrectBreaking(std::pair<SNode, SNode> break_edge);
 
-    // Function7 - if the breaking is correct, store corresponding info; otherwise, recover the edge and try another breaking
-    void ConstructUnrolledGraph();
 private:
     vector<SNode> nodes_;
     map<string, SNode> name2node_;
