@@ -110,7 +110,8 @@ private:
 
     // for Recurrent Neural Network implementation
     int id;//corresponding to the occurence order in vector "nodes_"
-    int timestamp;
+    int timestamp;// used when unrolling the cyclic graph
+    SNode orig;
 };
 
 
