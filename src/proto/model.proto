@@ -199,6 +199,8 @@ message LayerProto {
   
   // hyper-parameters for Recurrent Neural Network
   optional bool unroll_decision = 31 [default=false];
+  // to denote one-to-one or all-to-one or several-to-one, an integer array varying from 0 to window_size - 1
+  repeated int32 related_info = 32;
 }
 
 message RGBImage {

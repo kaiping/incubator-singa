@@ -98,6 +98,8 @@ public:
     // for Recurrent Neural Network implementation
     bool CheckInputNode(SNode node);
     bool CheckOutputNode(SNode node);
+    bool CheckWhetherSrcNode(SNode node);//check whether the input node is one of src nodes of this node
+    bool CheckWhetherDstNode(SNode node);//check whether the input node is one of dst nodes of this node
 
 private:
     string name_;
@@ -129,6 +131,8 @@ public:
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
         nodes_.back().id = nodes.size() - 1;
+        nodes_.back().timestamp = 0; // default timestamp value
+        nodes_.back().orig = nodes_.back(); // By default: use itself as the node's orig
         return nodes_.back();
     }
     const SNode& AddNode(string name)
@@ -137,6 +141,15 @@ public:
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
         nodes_.back().id = nodes.size() - 1;
+        nodes_.back().timestamp = 0; // default timestamp value
+        nodes_.back().orig = nodes_.back(); // By default: use itself as the node's orig
+        return nodes_.back();
+    }
+
+    //For RNN implementation - constructing graph when unrolling
+    const SNode& AddNode(SNode node)
+    {
+        nodes_.push_back(node);
         return nodes_.back();
     }
 

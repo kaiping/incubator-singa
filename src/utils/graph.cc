@@ -14,6 +14,30 @@ bool Node::CheckOutputNode(SNode node)
     else return false;
 }
 
+bool Node::CheckWhetherSrcNode(SNode node)//check whether the input node is one of src nodes of this node in class
+{
+    for(int i = 0; i < srcnodes_.size(); i++)
+    {
+        if(node == srcnodes_[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Node::CheckWhetherDstNode(SNode node)//check whether the input node is one of dst nodes of this node
+{
+    for(int i = 0; i < dstnodes_.size(); i++)
+    {
+        if(node == dstnodes_[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 const string Graph::ToString() const
 {
     map<string, string> info;
@@ -255,7 +279,7 @@ void ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes
         one_edge.first = cycle.top();
         cycle.pop();
         one_edge.second = cycle.top();
-        cycle_edges.push_back(one_edge);
+        cycle_edges.push_back(one_edge);// the "first" field is the src node and the "second" field is the dest node
     }
 }
 

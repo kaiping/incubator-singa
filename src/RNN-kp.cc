@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <queue>
+#include <vector>
 #include "utils/graph.h"
 
+typedef std::vector<SNode> nodes_timestamp;//keep all the nodes for one timestamp
 
 // For Recurrent Neural Network implementation
 // Function7 - if the breaking is correct, store corresponding info; otherwise, recover the edge and try another breaking
@@ -20,8 +22,8 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
         node_proto[node_temp] = layer_proto;
     }
     for (auto &layer_proto : net_proto.layer())// add edges in the graph
-            if(layer_proto.srclayers_size() != 0)//This layer has src layers
-            for(const string& src: layer_proto.srclayers())//src layers' definition in model.proto is "repeated string" which means a string array
+        if(layer_proto.srclayers_size() != 0)//This layer has src layers
+    for(const string& src: layer_proto.srclayers())//src layers' definition in model.proto is "repeated string" which means a string array
                 graph_orig.AddEdge(src, layer_proto.name());//use "void AddEdge(const string& src, const string& dst)"
 
 
@@ -44,23 +46,97 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
         }
     }
 
-    graph_orig.sort();//topology sort for the current acyclic graph
+    graph_orig.sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
 
-    // 3-unrolling
+
+    // 3-unrolling - constructing unrolled & acyclic graph
     int window_size = net_proto.win_size();
     Graph graph_unroll;
-    for(int j = 0; j < nodes_.size(); j++)
+    nodes_timestamp nodes_timeinfo[window_size];//keep the node information grouping by each timestamp
+    // Add nodes in the graph
+    for(int j = 0; j < graph_orig.nodes().size(); j++)
     {
-        if(node_proto[nodes_[j]].unroll_decision() == true)
+        if(node_proto[graph_orig.nodes().at(j)].unroll_decision() == true)// For the nodes which need to be unrolled
         {
             SNode nodes_j[window_size];
-            for(int k = 0; k < window_size; k++)
+            for(int k = 0; k < window_size; k++)//This loop corresponds to different timestamps
             {
-                nodes_j[k] = nodes_[j];
-                nodes_j[k].orig = nodes_[j];
+                nodes_j[k] = graph_orig.nodes().at(j);
+                nodes_j[k].orig = graph_orig.nodes().at(j);
                 nodes_j[k].timestamp = k;
+                graph_unroll.AddNode(nodes_j[k]);
+                nodes_timeinfo[k].push_back(nodes_j[k]);
+            }
+        }
+        else// For the nodes which don't need to be unrolled
+        {
+            graph_orig.nodes().at(j).timestamp = window_size - 1;
+            graph_unroll.AddNode(graph_orig.nodes().at(j));
+            nodes_timeinfo[window_size - 1].push_back(graph_orig.nodes().at(j));
+        }
+    }
+
+    // Add edges in the graph - same timestamp
+    for(int p = 0; p < window_size; p++)// traverse all timestamps
+    {
+        //for the nodes in the same timestamp
+        for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)
+        {
+            for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p].size(); pointer2++)
+            {
+                if(nodes_timeinfo[p].at(pointer1).orig.CheckWhetherSrcNode(nodes_timeinfo[p].at(pointer2).orig) == true)
+                    graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer2), nodes_timeinfo[p].at(pointer1));
+
+                else if(nodes_timeinfo[p].at(pointer1).orig.CheckWhetherDstNode(nodes_timeinfo[p].at(pointer2).orig) == true)
+                    graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p].at(pointer2));
             }
         }
     }
 
+
+    // Add edges in the graph - different timestamps
+    for(int p = 0; p < window_size; p++)// traverse all timestamps
+    {
+        //for the nodes in the neighboring timestamps
+        for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
+        {
+            if(pointer1 == nodes_timeinfo[p].size() - 1) break;// Not consider the last timestamp
+            else if(nodes_timeinfo[p].at(pointer1).orig == correct_breaking_edge.first)
+            {
+                for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
+                {
+                    if(nodes_timeinfo[p + 1].at(pointer2).orig == correct_breaking_edge.second)
+                        graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p + 1].at(pointer2));
+                }
+            }
+
+        }
+    }
+
+
+    //4-Consider the important node with special proto input defined in LayerProto as "repeated int32 related_info"
+    //(1)-Find this node
+    SNode aggregate_node;// this node is the first node which do not need to be unrolled in topological order, its timestamp is window_size - 1
+    for(int i = 0; i < graph_orig.nodes().size(); i++)
+    {
+        if(node_proto[graph_orig.nodes().at(i).orig].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
+        {
+            aggregate_node = graph_orig.nodes().at(i);
+            break;
+        }
+    }
+    //(2)-Add edges for this node using the src node information for this node
+    for(int &i: node_proto[aggregate_node.orig].related_info())
+    //use "node_proto[aggregate_node.orig].related_info()" as an indicator of the timestamp; for all corresponding timestamps
+    {
+        if(i == window_size - 1) continue;
+
+        for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the src nodes of the aggregation node
+        {
+            if(aggregate_node.orig.CheckWhetherSrcNode(nodes_timeinfo[i].at(j).orig) == true)
+            {
+                graph_unroll.AddEdge(nodes_timeinfo[i].at(j), aggregate_node);
+            }
+        }
+    }
 }
