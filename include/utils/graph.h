@@ -111,17 +111,17 @@ public:
         return shape_;
     }
 
-    int id() const
+    int id()
     {
         return id_;
     }
 
-    int timestamp() const
+    int timestamp()
     {
         return timestamp_;
     }
 
-    const SNode orig() const
+    const SNode orig()
     {
         return orig_;
     }
@@ -160,9 +160,9 @@ public:
         nodes_.push_back(make_shared<Node>(name, origin));
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
-        nodes_.back().id = nodes.size() - 1;
-        nodes_.back().timestamp = 0; // default timestamp value
-        nodes_.back().orig = nodes_.back(); // By default: use itself as the node's orig
+        (nodes_.back()->id()) = nodes_.size() - 1;
+        (nodes_.back()->timestamp()) = 0; // default timestamp value
+        (nodes_.back()->orig()) = nodes_.back(); // By default: use itself as the node's orig
         return nodes_.back();
     }
     const SNode& AddNode(string name)
@@ -170,9 +170,9 @@ public:
         nodes_.push_back(make_shared<Node>(name));
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
-        nodes_.back().id = nodes.size() - 1;
-        nodes_.back().timestamp = 0; // default timestamp value
-        nodes_.back().orig = nodes_.back(); // By default: use itself as the node's orig
+        (nodes_.back()->id()) = nodes_.size() - 1;
+        (nodes_.back()->timestamp()) = 0; // default timestamp value
+        (nodes_.back()->orig()) = nodes_.back(); // By default: use itself as the node's orig
         return nodes_.back();
     }
 
@@ -225,6 +225,12 @@ public:
         return name2node_.at(name);
     }
 
+    const SNode& node(int k) const
+    {
+        return nodes_[k];
+    }
+
+
     const string ToString() const;
     const string ToString(const map<string, string>& info) const ;
 
@@ -269,7 +275,7 @@ public:
     void DetectCycleAndSaveCycle();
 
     // Function2 - start from node v to detect whether there is a cycle
-    std::stack<SNode>& DFSForDetectCycleAndSaveCycle(SNode node_v);
+    void DFSForDetectCycleAndSaveCycle(SNode node_v);
 
     // for Function2
     bool hasCycle() const;

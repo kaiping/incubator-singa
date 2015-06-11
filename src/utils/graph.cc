@@ -227,41 +227,42 @@ void Graph::DetectCycleAndSaveCycle()//save the cycle in the graph
 // Function2 - start from node v to detect whether there is a cycle
 void Graph::DFSForDetectCycleAndSaveCycle(SNode node_v)
 {
-    on_stack_[node_v.id] = true;
-    marked_[node_v.id] = true;
-    for(int i = 0; i < node_v.dstnodes_.size(); i++)
+    on_stack_[node_v->id()] = true;
+    marked_[node_v->id()] = true;
+    for(int i = 0; i < node_v->dstnodes_size(); i++)
     {
         if(hasCycle()==true)
         {
             return;//?correct?
         }
-        if(marked_[node_v.dstnodes_[i].id] != true)//this node is not visited
+        if(marked_[(node_v->dstnodes(i))->id()] != true)//this node is not visited
         {
-            edge_to_[node_v.dstnodes_[i].id] = node_v.id;
-            DFSForDetectCycleAndSaveCycle(node_v.dstnodes_[i]);
+            edge_to_[(node_v->dstnodes(i))->id()] = node_v->id();
+            DFSForDetectCycleAndSaveCycle(node_v->dstnodes(i));
         }
-        else if(on_stack_[node_v.dstnodes_[i].id] == true)
+        else if(on_stack_[(node_v->dstnodes(i))->id()] == true)
         {
             //std::stack<SNode> cycle;
-            for(int j = node_v.id; j != node_v.dstnodes_[i].id; j = edgeTo[j])
+            for(int j = node_v->id(); j != node_v->dstnodes(i)->id(); j = edge_to_[j])
             {
                 cycle_.push(nodes_[j]);//push the node corresponding to the id "j" into the stack "cycle"
             }
-            cycle_.push(node_v.dstnodes_[i]);
+            cycle_.push(node_v->dstnodes(i));
             cycle_.push(node_v);
         }
     }
-    on_stack_[node_v.id] = false;
+    on_stack_[node_v->id()] = false;
 
 }
 
 // for Function2
 bool Graph::hasCycle() const
 {
-    return cycle_ != NULL;
+    if(cycle_.empty() == true) return false;
+    else return true;
 }
 
-void ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes)
+void Graph::ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes)
 {
     while(cycle_.size() > 1)
     {
@@ -274,31 +275,31 @@ void ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes
 }
 
 // Function4 - break one edge in the cycle and update the edge information
-void BreakEdge(std::pair<SNode, SNode> break_edge)//update the edge information in the whole graph according to the edge
+void Graph::BreakEdge(std::pair<SNode, SNode> break_edge)//update the edge information in the whole graph according to the edge
 {
     RemoveEdge(break_edge.first, break_edge.second);
 }
 
 
 // Function5 - recover the breaking of one edge in the cycle and update the edge information
-void RecoverEdge(std::pair<SNode, SNode> recover_edge)// update the edge information in the whole graph according to the edge
+void Graph::RecoverEdge(std::pair<SNode, SNode> recover_edge)// update the edge information in the whole graph according to the edge
 {
     AddEdge(recover_edge.first, recover_edge.second);
 }
 
 // Function6 - check whether the breaking is correct
-bool CheckCorrectBreaking(std::pair<SNode, SNode> break_edge)
+bool Graph::CheckCorrectBreaking(std::pair<SNode, SNode> break_edge)
 {
     BreakEdge(break_edge);
     int cnt_indegree_zero = 0;// denote the number of nodes with in-degree value as 0
     int cnt_outdegree_zero = 0;// denote the number of nodes with out-degree value as 0
     for(int i = 0; i < nodes_.size(); i++)
     {
-        if(nodes_[i].srcnodes_.size() == 0)
+        if(nodes_[i]->srcnodes_size() == 0)
         {
             cnt_indegree_zero++;
         }
-        else if(nodes_[i].dstnodes_.size() == 0)
+        else if(nodes_[i]->dstnodes_size() == 0)
         {
             cnt_outdegree_zero++;
         }
