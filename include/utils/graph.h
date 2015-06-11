@@ -96,10 +96,40 @@ public:
     }
 
     // for Recurrent Neural Network implementation
-    bool CheckInputNode(SNode node);
-    bool CheckOutputNode(SNode node);
-    bool CheckWhetherSrcNode(SNode node);//check whether the input node is one of src nodes of this node
-    bool CheckWhetherDstNode(SNode node);//check whether the input node is one of dst nodes of this node
+    const string& color() const
+    {
+        return color_;
+    }
+
+    const string& weight() const
+    {
+        return weight_;
+    }
+
+    const string& shape() const
+    {
+        return shape_;
+    }
+
+    int id() const
+    {
+        return id_;
+    }
+
+    int timestamp() const
+    {
+        return timestamp_;
+    }
+
+    const SNode orig() const
+    {
+        return orig_;
+    }
+
+    bool CheckInputNode() const;
+    bool CheckOutputNode() const;
+    bool CheckWhetherSrcNode(SNode node) const;//check whether the input node is one of src nodes of this node
+    bool CheckWhetherDstNode(SNode node) const;//check whether the input node is one of dst nodes of this node
 
 private:
     string name_;
@@ -111,9 +141,9 @@ private:
     string color_, weight_, shape_;
 
     // for Recurrent Neural Network implementation
-    int id;//corresponding to the occurence order in vector "nodes_"
-    int timestamp;// used when unrolling the cyclic graph
-    SNode orig;
+    int id_;//corresponding to the occurence order in vector "nodes_"
+    int timestamp_;// used when unrolling the cyclic graph
+    SNode orig_;
 };
 
 
@@ -210,19 +240,43 @@ public:
                              std::stack<string> *stack);
 
     // for Recurrent Neural Network implementation
+    const vector<bool>& marked() const
+    {
+        return marked_;
+    }
+
+    const vector<int>& edge_to() const
+    {
+        return edge_to_;
+    }
+
+    const stack<SNode>& cycle() const
+    {
+        return cycle_;
+    }
+
+    const vector<pair<SNode, SNode> >& cycle_edges() const
+    {
+        return cycle_edges_;
+    }
+
+    const vector<bool>& on_stack() const
+    {
+        return on_stack_;
+    }
 
     // Function1 - detect cycle in the graph and save the graph (now can only deal with the single-cycle situation)
     void DetectCycleAndSaveCycle();
 
     // Function2 - start from node v to detect whether there is a cycle
-    std::stack<SNode> DFSForDetectCycleAndSaveCycle(SNode node_v);
+    std::stack<SNode>& DFSForDetectCycleAndSaveCycle(SNode node_v);
 
     // for Function2
-    bool hasCycle();
+    bool hasCycle() const;
     //std::stack<SNode> cycle();
 
     // Function3 - change the cycle information to the edge (node pairs) representation
-    void ChangeCycleToEdges(std::stack<SNode> cycle_stack);
+    void ChangeCycleToEdges();
 
     // Function4 - break one edge in the cycle and update the edge information
     void BreakEdge(std::pair<SNode, SNode> break_edge);//update the edge information in the whole graph according to the edge
@@ -238,10 +292,18 @@ private:
     map<string, SNode> name2node_;
 
     // for Recurrent Neural Network
-    bool marked[];// to denote whether this node has been visited
-    int edgeTo[];// to record the pre-visited node order
-    stack<SNode> cycle;
-    std::vector<std::pair<SNode, SNode>> cycle_edges;// another representation of all edges in the graph
-    bool onStack[];// to denote whether this node is being visited
+
+    /*bool marked[];// to denote whether this node has been visited*/
+    std::vector<bool> marked_;// to denote whether this node has been visited
+
+    /*int edgeTo[];// to record the pre-visited node order*/
+    std::vector<int> edge_to_;// to record the pre-visited node order
+
+    stack<SNode> cycle_;
+
+    std::vector<std::pair<SNode, SNode> > cycle_edges_;// another representation of all edges in the graph
+
+    /*bool onStack[];// to denote whether this node is being visited*/
+    std::vector<bool> on_stack_;// to denote whether this node is being visited
 };
 #endif // INCLUDE_UTILS_GRAPH_H_

@@ -2,19 +2,19 @@
 #include "utils/graph.h"
 
 // for Recurrent Neural Network implementation
-bool Node::CheckInputNode(SNode node)
+bool Node::CheckInputNode() const
 {
-    if(node->srcnodes_size() == 0) return true;
+    if(srcnodes_size() == 0) return true;
     else return false;
 }
 
-bool Node::CheckOutputNode(SNode node)
+bool Node::CheckOutputNode() const
 {
-    if(node->dstnodes_size() == 0) return true;
+    if(dstnodes_size() == 0) return true;
     else return false;
 }
 
-bool Node::CheckWhetherSrcNode(SNode node)//check whether the input node is one of src nodes of this node in class
+bool Node::CheckWhetherSrcNode(SNode node) const//check whether the input node is one of src nodes of this node in class
 {
     for(int i = 0; i < srcnodes_.size(); i++)
     {
@@ -26,7 +26,7 @@ bool Node::CheckWhetherSrcNode(SNode node)//check whether the input node is one 
     return false;
 }
 
-bool Node::CheckWhetherDstNode(SNode node)//check whether the input node is one of dst nodes of this node
+bool Node::CheckWhetherDstNode(SNode node) const//check whether the input node is one of dst nodes of this node
 {
     for(int i = 0; i < dstnodes_.size(); i++)
     {
@@ -43,6 +43,7 @@ const string Graph::ToString() const
     map<string, string> info;
     return ToString(info);
 }
+
 const string Graph::ToString(const map<string, string>& info) const
 {
     map<string, int> nodeid;
@@ -98,6 +99,7 @@ for(auto dst: src->dstnodes())
     disp+="]\n";
     return disp+"}";
 }
+
 bool Graph::Check() const
 {
     return true;
@@ -201,12 +203,21 @@ std::pair<SNode, SNode> Graph::InsertBridgeNode(SNode srcnode, SNode dstnode)
 // Function1 - detect cycle in the graph and save the graph (now can only deal with the single-cycle situation)
 void Graph::DetectCycleAndSaveCycle()//save the cycle in the graph
 {
-    onStack = new bool[nodes_.size()];//?need to be deleted later
+    /*onStack = new bool[nodes_.size()];//?need to be deleted later
     edgeTo = new SNode[nodes_.size()];
-    marked = new bool[nodes_.size()];
+    marked = new bool[nodes_.size()];*/
+
+    //Initialize marked_ and on_stack_ to be all "false", and edge_to_ to be all -1
+    for(int i = 0; i < nodes_.size(); i++)
+    {
+        marked_.push_back(false);
+        on_stack_.push_back(false);
+        edge_to_.push_back(-1);
+    }
+
     for(int v = 0; v < nodes_.size(); v++)
     {
-        if(marked[v] != true)//node v is not visited
+        if(marked_[v] != true)//node v is not visited
         {
             DFSForDetectCycleAndSaveCycle(nodes_[v]);
         }
@@ -216,70 +227,49 @@ void Graph::DetectCycleAndSaveCycle()//save the cycle in the graph
 // Function2 - start from node v to detect whether there is a cycle
 void Graph::DFSForDetectCycleAndSaveCycle(SNode node_v)
 {
-    onStack[node_v.id] = true;
-    marked[node_v.id] = true;
+    on_stack_[node_v.id] = true;
+    marked_[node_v.id] = true;
     for(int i = 0; i < node_v.dstnodes_.size(); i++)
     {
         if(hasCycle()==true)
         {
             return;//?correct?
         }
-        if(marked[node_v.dstnodes_[i].id] != true)//this node is not visited
+        if(marked_[node_v.dstnodes_[i].id] != true)//this node is not visited
         {
-            edgeTo[node_v.dstnodes_[i].id] = node_v.id;
+            edge_to_[node_v.dstnodes_[i].id] = node_v.id;
             DFSForDetectCycleAndSaveCycle(node_v.dstnodes_[i]);
         }
-        else if(onStack[node_v.dstnodes_[i].id] == true)
+        else if(on_stack_[node_v.dstnodes_[i].id] == true)
         {
-            std::stack<SNode> cycle;
+            //std::stack<SNode> cycle;
             for(int j = node_v.id; j != node_v.dstnodes_[i].id; j = edgeTo[j])
             {
-                cycle.push(nodes_[j]);//push the node corresponding to the id "j" into the stack "cycle"
+                cycle_.push(nodes_[j]);//push the node corresponding to the id "j" into the stack "cycle"
             }
-            cycle.push(node_v.dstnodes_[i]);
-            cycle.push(node_v);
+            cycle_.push(node_v.dstnodes_[i]);
+            cycle_.push(node_v);
         }
     }
-    onStack[node_v.id] = false;
+    on_stack_[node_v.id] = false;
 
 }
 
 // for Function2
-bool Graph::hasCycle()
+bool Graph::hasCycle() const
 {
-    return cycle != NULL;
+    return cycle_ != NULL;
 }
-
-//std::stack<SNode> Graph::cycle()
-//{
-//    return cycle;
-//}
-
-// Function3 - change the cycle information to the edge (node pairs) representation
-
-//std::vector<std::pair<SNode, SNode>> ChangeCycleToEdges(std::stack<SNode> cycle_stack)//in implementation, use graph_.DFSForDetectCycleAndSaveCycle()
-//{
-//    std::vector<std::pair<SNode, SNode>> cycle_edges;
-//    while(cycle_stack.size() > 1)
-//    {
-//        std::pair<SNode, SNode> one_edge;
-//        one_edge.first = cycle_stack.top();
-//        cycle_stack.pop();
-//        one_edge.second = cycle_stack.top();
-//        cycle_edges.push_back(one_edge);
-//    }
-//    return cycle_edges;
-//}
 
 void ChangeCycleToEdges()//save the cycle information into edges (pairs of nodes)
 {
-    while(cycle.size() > 1)
+    while(cycle_.size() > 1)
     {
         std::pair<SNode, SNode> one_edge;
-        one_edge.first = cycle.top();
-        cycle.pop();
-        one_edge.second = cycle.top();
-        cycle_edges.push_back(one_edge);// the "first" field is the src node and the "second" field is the dest node
+        one_edge.first = cycle_.top();
+        cycle_.pop();
+        one_edge.second = cycle_.top();
+        cycle_edges_.push_back(one_edge);// the "first" field is the src node and the "second" field is the dest node
     }
 }
 
