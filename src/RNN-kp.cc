@@ -18,13 +18,13 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
 
     // 1-construct original graph which may contain a cycle, use each SNode can still access the LayerProto information
     map<string, LayerProto> protos;// store the corresponding information between layer name and layer_proto
-    map<SNode, LayerProto> node_proto; // store the correponding information between SNode and LayerProto
+    map<int, LayerProto> nodeid_proto; // store the correponding information between SNode ID and LayerProto
     for (auto &layer_proto : net_proto.layer())// for each layer in the neural net, add a node in the corresponding graph
     {
         SNode node_temp;
         node_temp = graph_orig.AddNode(layer_proto.name());//use "const SNode& AddNode(string name)"
         protos[layer_proto.name()]=layer_proto;
-        node_proto[node_temp] = layer_proto;
+        nodeid_proto[node_temp->id()] = layer_proto;
     }
     for (auto &layer_proto : net_proto.layer())// add edges in the graph
         if(layer_proto.srclayers_size() != 0)//This layer has src layers
@@ -61,7 +61,7 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
     // Add nodes in the graph
     for(int j = 0; j < graph_orig.nodes().size(); j++)
     {
-        if(node_proto[graph_orig.nodes().at(j)].unroll_decision() == true)// For the nodes which need to be unrolled
+        if(nodeid_proto[graph_orig.nodes().at(j)->id()].unroll_decision() == true)// For the nodes which need to be unrolled
         {
             SNode nodes_j[window_size];
             for(int k = 0; k < window_size; k++)//This loop corresponds to different timestamps
@@ -124,15 +124,15 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
     SNode aggregate_node;// this node is the first node which do not need to be unrolled in topological order, its timestamp is window_size - 1
     for(int i = 0; i < graph_orig.nodes().size(); i++)
     {
-        if(node_proto[graph_orig.nodes().at(i)->orig()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
+        if(nodeid_proto[graph_orig.nodes().at(i)->orig()->id()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
         {
             aggregate_node = graph_orig.nodes().at(i);
             break;
         }
     }
     //(2)-Add edges for this node using the src node information for this node
-    for(const int& i: node_proto[aggregate_node->orig()].related_info())
-    //use "node_proto[aggregate_node.orig].related_info()" as an indicator of the timestamp; for all corresponding timestamps
+    for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
+    //use "nodeid_proto[aggregate_node->orig()->id()].related_info()" as an indicator of the timestamp; for all corresponding timestamps
     {
         if(i == window_size - 1) continue;
 
