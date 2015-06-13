@@ -2,7 +2,12 @@
 #include <queue>
 #include <vector>
 #include "utils/graph.h"
+#include "utils/singleton.h"
+#include "utils/factory.h"
+#include "utils/cluster.h"
+#include "proto/model.pb.h"
 
+namespace singa {
 typedef std::vector<SNode> nodes_timestamp;//keep all the nodes for one timestamp
 
 // For Recurrent Neural Network implementation
@@ -32,21 +37,21 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
     graph_orig.DetectCycleAndSaveCycle();// detect and save the cycle for original graph
     graph_orig.ChangeCycleToEdges();// change the cycle information into edge representation, now in "std::vector<std::pair<SNode, SNode>> cycle_edges"
 
-    for(int i = 0; i < cycle_edges().size(); i++)
+    for(int i = 0; i < graph_orig.cycle_edges().size(); i++)
     {
-        graph_orig.BreakEdge(cycle_edges().at(i));
-        if(graph_orig.CheckCorrectBreaking() == true)
+        //graph_orig.BreakEdge(graph_orig.cycle_edges().at(i));
+        if(graph_orig.CheckCorrectBreaking(graph_orig.cycle_edges().at(i)) == true)
         {
-            correct_breaking_edge = cycle_edges().at(i);//save the correct edge to be broken & the current graph_orig saves the correct acyclic graph
+            correct_breaking_edge = graph_orig.cycle_edges().at(i);//save the correct edge to be broken & the current graph_orig saves the correct acyclic graph
             break;
         }
         else
         {
-            graph_orig.RecoverEdge(cycle_edges().at(i));//recover the edge which has been broken
+            graph_orig.RecoverEdge(graph_orig.cycle_edges().at(i));//recover the edge which has been broken
         }
     }
 
-    graph_orig.sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
+    graph_orig.Sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
 
 
     // 3-unrolling - constructing unrolled & acyclic graph
@@ -62,15 +67,15 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
             for(int k = 0; k < window_size; k++)//This loop corresponds to different timestamps
             {
                 nodes_j[k] = graph_orig.nodes().at(j);//default timestamp value is 0
-                nodes_j[k].orig() = graph_orig.nodes().at(j);
-                nodes_j[k].timestamp() = k;
+                nodes_j[k]->set_orig(graph_orig.nodes().at(j));
+                nodes_j[k]->set_timestamp(k);
                 graph_unroll.AddNode(nodes_j[k]);
                 nodes_timeinfo[k].push_back(nodes_j[k]);
             }
         }
         else// For the nodes which don't need to be unrolled
         {
-            graph_orig.nodes().at(j).timestamp() = window_size - 1;
+            graph_orig.nodes().at(j)->set_timestamp(window_size - 1);
             graph_unroll.AddNode(graph_orig.nodes().at(j));
             nodes_timeinfo[window_size - 1].push_back(graph_orig.nodes().at(j));
         }
@@ -84,10 +89,10 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
         {
             for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p].size(); pointer2++)
             {
-                if(nodes_timeinfo[p].at(pointer1).orig().CheckWhetherSrcNode(nodes_timeinfo[p].at(pointer2).orig()) == true)
+                if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherSrcNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
                     graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer2), nodes_timeinfo[p].at(pointer1));
 
-                else if(nodes_timeinfo[p].at(pointer1).orig().CheckWhetherDstNode(nodes_timeinfo[p].at(pointer2).orig()) == true)
+                else if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherDstNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
                     graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p].at(pointer2));
             }
         }
@@ -101,11 +106,11 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
         {
             if(pointer1 == nodes_timeinfo[p].size() - 1) break;// Not consider the last timestamp
-            else if(nodes_timeinfo[p].at(pointer1).orig() == correct_breaking_edge.first)
+            else if(nodes_timeinfo[p].at(pointer1)->orig() == correct_breaking_edge.first)
             {
                 for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
                 {
-                    if(nodes_timeinfo[p + 1].at(pointer2).orig() == correct_breaking_edge.second)
+                    if(nodes_timeinfo[p + 1].at(pointer2)->orig() == correct_breaking_edge.second)
                         graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p + 1].at(pointer2));
                 }
             }
@@ -119,24 +124,26 @@ void ConstructUnrolledGraphForRNN(const NetProto &net_proto)
     SNode aggregate_node;// this node is the first node which do not need to be unrolled in topological order, its timestamp is window_size - 1
     for(int i = 0; i < graph_orig.nodes().size(); i++)
     {
-        if(node_proto[graph_orig.nodes().at(i).orig()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
+        if(node_proto[graph_orig.nodes().at(i)->orig()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
         {
             aggregate_node = graph_orig.nodes().at(i);
             break;
         }
     }
     //(2)-Add edges for this node using the src node information for this node
-    for(int &i: node_proto[aggregate_node.orig].related_info())
+    for(const int& i: node_proto[aggregate_node->orig()].related_info())
     //use "node_proto[aggregate_node.orig].related_info()" as an indicator of the timestamp; for all corresponding timestamps
     {
         if(i == window_size - 1) continue;
 
         for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the src nodes of the aggregation node
         {
-            if(aggregate_node.orig().CheckWhetherSrcNode(nodes_timeinfo[i].at(j).orig()) == true)
+            if(aggregate_node->orig()->CheckWhetherSrcNode(nodes_timeinfo[i].at(j)->orig()) == true)
             {
                 graph_unroll.AddEdge(nodes_timeinfo[i].at(j), aggregate_node);
             }
         }
     }
 }
+
+}//namespace singa

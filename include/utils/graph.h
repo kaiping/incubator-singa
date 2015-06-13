@@ -111,19 +111,34 @@ public:
         return shape_;
     }
 
-    int id()
+    const int& id() const
     {
         return id_;
     }
 
-    int timestamp()
+    const int& timestamp() const
     {
         return timestamp_;
     }
 
-    const SNode orig()
+    const SNode& orig() const
     {
         return orig_;
+    }
+
+    void set_id(int k)
+    {
+       id_ = k;
+    }
+
+    void set_timestamp(int k)
+    {
+       timestamp_ = k;
+    }
+
+    void set_orig(SNode p)
+    {
+       orig_ = p;
     }
 
     bool CheckInputNode() const;
@@ -160,9 +175,9 @@ public:
         nodes_.push_back(make_shared<Node>(name, origin));
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
-        (nodes_.back()->id()) = nodes_.size() - 1;
-        (nodes_.back()->timestamp()) = 0; // default timestamp value
-        (nodes_.back()->orig()) = nodes_.back(); // By default: use itself as the node's orig
+        nodes_.back()->set_id(nodes_.size() - 1);
+        nodes_.back()->set_timestamp(0); // default timestamp value
+        nodes_.back()->set_orig(nodes_.back()); // By default: use itself as the node's orig
         return nodes_.back();
     }
     const SNode& AddNode(string name)
@@ -170,9 +185,9 @@ public:
         nodes_.push_back(make_shared<Node>(name));
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
-        (nodes_.back()->id()) = nodes_.size() - 1;
-        (nodes_.back()->timestamp()) = 0; // default timestamp value
-        (nodes_.back()->orig()) = nodes_.back(); // By default: use itself as the node's orig
+        nodes_.back()->set_id(nodes_.size() - 1);
+        nodes_.back()->set_timestamp(0); // default timestamp value
+        nodes_.back()->set_orig(nodes_.back()); // By default: use itself as the node's orig
         return nodes_.back();
     }
 
