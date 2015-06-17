@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "utils/graph.h"
+#include <iostream>
 
 // for Recurrent Neural Network implementation
 bool Node::CheckInputNode() const
@@ -143,9 +144,11 @@ for (SNode node: nodes_)
     }
     nodes_.clear();
 
+    std::cout << "Now output the topological ordering of nodes in the graph..." << std::endl;
     while (!stack.empty())
     {
         nodes_.push_back(name2node_[stack.top()]);
+	std::cout << stack.top() << std::endl; 
         stack.pop();
     }
 }
