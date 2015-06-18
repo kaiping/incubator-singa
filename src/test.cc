@@ -10,6 +10,7 @@
 #include "utils/cluster.h"
 #include "proto/model.pb.h"
 #include <iostream>
+#include <string>
 
 /**
  * \file main.cc is the main entry of SINGA, like the driver program for Hadoop.
@@ -95,24 +96,63 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
     std::cout << "adding nodes..." << std::endl;
     for(int j = 0; j < graph_orig.nodes().size(); j++)
     {
+	//std::cout << "Before starting unrolling nodes, in graph_orig:  name: " << graph_orig.nodes().at(j)->name() << " timestamp: " << graph_orig.nodes().at(j)->timestamp()  << std::endl;
         if(nodeid_proto[graph_orig.nodes().at(j)->id()].unroll_decision() == true)// For the nodes which need to be unrolled
         {
             SNode nodes_j[window_size];
             for(int k = 0; k < window_size; k++)//This loop corresponds to different timestamps
             {
-                nodes_j[k] = graph_orig.nodes().at(j);//default timestamp value is 0
-                nodes_j[k]->set_orig(graph_orig.nodes().at(j));
-                nodes_j[k]->set_timestamp(k);
-                graph_unroll.AddNode(nodes_j[k]);
+		nodes_j[k] = std::make_shared<Node>(graph_orig.node(j)->name());
+		//nodes_j[k]->set_srcnodes(graph_orig.node(j)->srcnodes());
+		//nodes_j[k]->set_dstnodes(graph_orig.node(j)->dstnodes());
+		nodes_j[k]->set_val(graph_orig.node(j)->val());
+		nodes_j[k]->set_color(graph_orig.node(j)->color());
+		nodes_j[k]->set_weight(graph_orig.node(j)->weight());
+		nodes_j[k]->set_shape(graph_orig.node(j)->shape());
+		nodes_j[k]->set_id(graph_orig.node(j)->id());
+		nodes_j[k]->set_timestamp(graph_orig.node(j)->timestamp());
+		nodes_j[k]->set_orig(graph_orig.node(j)->orig());		
+			
+                //std::cout << "When initilization, the name of the node is: " <<  nodes_j[k]->name() << std::endl;
+		nodes_j[k]->set_orig(graph_orig.node(j));
+		//std::cout << "In graph_orig: orig node's name: " << graph_orig.node(j)->name() << " timestamp: " << graph_orig.node(j)->timestamp() << std::endl;
+                //std::cout << "orig node's name : " << nodes_j[k]->orig()->name() << " timestamp: " << nodes_j[k]->orig()->timestamp() << std::endl;
+		nodes_j[k]->set_timestamp(k);
+		nodes_j[k]->set_name(nodes_j[k]->orig()->name() + "@" +std::to_string(k));
+                //std::cout << "In graph_orig: orig node's name: " << graph_orig.node(j)->name() << " timestamp: " << graph_orig.node(j)->timestamp() << std::endl;
+		//std::cout << "orig node's name : " << nodes_j[k]->orig()->name() << " timestamp: " << nodes_j[k]->orig()->timestamp() << std::endl;
+		//std::cout << nodes_j[k]->name() << std::endl;
+		graph_unroll.AddNode(nodes_j[k]);
                 nodes_timeinfo[k].push_back(nodes_j[k]);
+                //std::cout << std::endl;
             }
         }
         else// For the nodes which don't need to be unrolled
         {
-            graph_orig.nodes().at(j)->set_timestamp(window_size - 1);
-            graph_unroll.AddNode(graph_orig.nodes().at(j));
-            nodes_timeinfo[window_size - 1].push_back(graph_orig.nodes().at(j));
+	    SNode new_node;
+	    //Initialization
+	    new_node = std::make_shared<Node>(graph_orig.node(j)->name());
+            //new_node->set_srcnodes(graph_orig.node(j)->srcnodes());
+            //new_node->set_dstnodes(graph_orig.node(j)->dstnodes());
+            new_node->set_val(graph_orig.node(j)->val());
+            new_node->set_color(graph_orig.node(j)->color());
+            new_node->set_weight(graph_orig.node(j)->weight());
+            new_node->set_shape(graph_orig.node(j)->shape());
+            new_node->set_id(graph_orig.node(j)->id());
+            new_node->set_timestamp(graph_orig.node(j)->timestamp());
+            new_node->set_orig(graph_orig.node(j)->orig());
+	    //Update corresponding information
+	    new_node->set_timestamp(window_size - 1);
+	    new_node->set_orig(graph_orig.node(j));
+	    new_node->set_name(new_node->orig()->name() + "@" +std::to_string(window_size - 1));	    
+            graph_unroll.AddNode(new_node);
+            nodes_timeinfo[window_size - 1].push_back(new_node);
         }
+    }
+
+    for(int k = 0; k < window_size; k++)
+    {
+	std::cout << "number of nodes for timestamp: " << k << " is: " << nodes_timeinfo[k].size() << std::endl;
     }
 
     std::cout << "adding edges..." << std::endl;
@@ -126,32 +166,45 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
             for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p].size(); pointer2++)
             {
                 if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherSrcNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
-                    graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer2), nodes_timeinfo[p].at(pointer1));
-
+                   {
+			 graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer2), nodes_timeinfo[p].at(pointer1));
+		   	 std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer2)->name() << " to : " << nodes_timeinfo[p].at(pointer1)->name() << std::endl;
+		   }
                 else if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherDstNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
-                    graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p].at(pointer2));
-            }
+                   {
+			 graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p].at(pointer2));
+                   	 std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p].at(pointer2)->name() << std::endl;
+		   }
+	    }
         }
     }
 
     std::cout << "adding edges...for different timestamps" << std::endl;
     // Add edges in the graph - different timestamps
-    for(int p = 0; p < window_size; p++)// traverse all timestamps
+    for(int p = 0; p < window_size - 1; p++)// traverse all timestamps
     {
         //for the nodes in the neighboring timestamps
 	std::cout << "test - loop 3" << std::endl;
         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
         {
 	    std::cout << "test - loop 2" << std::endl;
-            if(pointer1 == nodes_timeinfo[p].size() - 1) break;// Not consider the last timestamp
-            else if(nodes_timeinfo[p].at(pointer1)->orig() == correct_breaking_edge.first)
+            //if(pointer1 == nodes_timeinfo[p].size() - 1)
+            //{
+            // std::cout << "the last timestamp" << std::endl;
+            // break;// Not consider the last timestamp
+            //}
+            if(nodes_timeinfo[p].at(pointer1)->orig() == correct_breaking_edge.first)
             {
-                for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
+                for(int pointer2 = 0; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
                 {
 		    std::cout << "test - loop 1" << std::endl;
                     if(nodes_timeinfo[p + 1].at(pointer2)->orig() == correct_breaking_edge.second)
+			{
                         graph_unroll.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p + 1].at(pointer2));
-                }
+                	std::cout << "successfully add one edge according to correct breaking edge!" << std::endl;
+			std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p+1].at(pointer2)->name() << std::endl;
+			}
+		}
             }
 
         }
@@ -167,9 +220,19 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
         if(nodeid_proto[graph_orig.nodes().at(i)->orig()->id()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
         {
             aggregate_node = graph_orig.nodes().at(i);
-            break;
+            std::cout << "the aggregate node is : " << aggregate_node->name() << std::endl;
+	    std::cout << "the origin of the aggregate node is : " << aggregate_node->orig()->name() << std::endl;
+	    break;
         }
     }
+    
+    //update the information in unrolled graph to determine which node is the aggregate node
+    for(int i = 0; i < graph_unroll.nodes().size();i++)
+    {
+	if(graph_unroll.node(i)->orig() == aggregate_node)
+        aggregate_node = graph_unroll.node(i);
+    }
+
     //(2)-Add edges for this node using the src node information for this node
     std::cout << "add edges for the aggregation node..." << std::endl;
     for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
@@ -182,11 +245,13 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
             if(aggregate_node->orig()->CheckWhetherSrcNode(nodes_timeinfo[i].at(j)->orig()) == true)
             {
                 graph_unroll.AddEdge(nodes_timeinfo[i].at(j), aggregate_node);
-            }
+                std::cout << "ading edge from : " << nodes_timeinfo[i].at(j)->name() << " to : " << aggregate_node->name() << std::endl;
+	    }
         }
     }
 
     std::cout << "write the graph information to string and then write to a file..." << std::endl;
+    std::cout << "# of nodes in graph_unroll : " << graph_unroll.nodes().size() << std::endl;
   {//output the graph information to string and then write to a file
     string vis_folder=singa::Cluster::Get()->vis_folder();
     std::ofstream fout(vis_folder+"/nopartition.json", std::ofstream::out);
@@ -207,6 +272,7 @@ int main(int argc, char **argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   /*No need to consider the cluster.conf file right now*/
+
   singa::ClusterProto cluster;
   singa::ReadProtoFromTextFile(FLAGS_cluster.c_str(), &cluster);//but can use only one master and one worker
   //std::cout << "have read cluster information..." << std:: endl;
@@ -219,7 +285,7 @@ int main(int argc, char **argv) {
   //RegisterClasses(model);
   //singa::Trainer trainer;
   //trainer.Start(model, cluster, FLAGS_procsID);
-
+  singa::Cluster::Get(cluster, 0);
   //The input parameter for the function ConstructUnrolledGraphForRNN should be like: const NetProto &net_proto
   ConstructUnrolledGraphForRNN(model.neuralnet());// in file: model.proto, there is one field: optional NetProto neuralnet = 40;
 

@@ -88,6 +88,7 @@ for(auto node: nodes_)
 for(auto src: nodes_)
 for(auto dst: src->dstnodes())
         {
+LOG(ERROR)<<src->name()<<"->"<<dst->name();
             char str[1024];
             sprintf(str, "{\"source\":%d, \"target\":%d, \"color\":\"%s\"}\n",
                     nodeid[src->name()], nodeid[dst->name()], "black");

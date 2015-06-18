@@ -126,6 +126,41 @@ public:
         return orig_;
     }
 
+    void set_name(string k)
+    {
+       name_ = k;
+    }
+
+    void set_srcnodes(vector<SNode> k)
+    {
+	srcnodes_ = k;
+    }
+
+    void set_dstnodes(vector<SNode> k)
+    {
+	dstnodes_ = k;
+    }
+
+    void set_val(V k)
+    {
+	val_ = k;
+    }
+
+    void set_color(string k)
+    {
+	color_ = k;
+    }
+
+    void set_weight(string k)
+    {
+	weight_ = k;
+    }
+
+    void set_shape(string k)
+    {
+	shape_ = k;
+    }
+
     void set_id(int k)
     {
        id_ = k;
@@ -176,7 +211,7 @@ public:
         name2node_[name]=nodes_.back();
         // for Recurrent Neural Network implementation
         nodes_.back()->set_id(nodes_.size() - 1);
-        nodes_.back()->set_timestamp(0); // default timestamp value
+        nodes_.back()->set_timestamp(0); // default timestamp value 
         nodes_.back()->set_orig(nodes_.back()); // By default: use itself as the node's orig
         return nodes_.back();
     }
