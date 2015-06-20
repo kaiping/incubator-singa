@@ -188,11 +188,6 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
         {
 	    std::cout << "test - loop 2" << std::endl;
-            //if(pointer1 == nodes_timeinfo[p].size() - 1)
-            //{
-            // std::cout << "the last timestamp" << std::endl;
-            // break;// Not consider the last timestamp
-            //}
             if(nodes_timeinfo[p].at(pointer1)->orig() == correct_breaking_edge.first)
             {
                 for(int pointer2 = 0; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
@@ -212,28 +207,64 @@ void ConstructUnrolledGraphForRNN(const singa::NetProto& net_proto)
 
 
     //4-Consider the important node with special proto input defined in LayerProto as "repeated int32 related_info"
-    //(1)-Find this node
-    std::cout << "consider the important node - the aggregation node" << std::endl;
-    SNode aggregate_node;// this node is the first node which do not need to be unrolled in topological order, its timestamp is window_size - 1
-    for(int i = 0; i < graph_orig.nodes().size(); i++)
+    //(1)-Find spread node & aggregate node
+    std::cout << "consider 2 important nodes - the spread node and the aggregation node" << std::endl;
+    SNode spread_node;// the last node whose unroll_decision is false; then turn to true
+    SNode aggregate_node;// the first node whose unroll_decision is false; after several nodes which need to be unrolled 
+    for(int i = 0; i < graph_orig.nodes_size(); i++)
     {
-        if(nodeid_proto[graph_orig.nodes().at(i)->orig()->id()].unroll_decision() == false)//the timestamp of graph_orig.nodes().at(i).orig is 0 but the timestamp for graph_orig.nodes().at(i) is now window_size - 1
-        {
-            aggregate_node = graph_orig.nodes().at(i);
-            std::cout << "the aggregate node is : " << aggregate_node->name() << std::endl;
-	    std::cout << "the origin of the aggregate node is : " << aggregate_node->orig()->name() << std::endl;
-	    break;
+	std::cout << "the nodes in the graph are respectively: " << graph_orig.node(i)->name() << std::endl;
+	if(nodeid_proto[graph_orig.node(i)->orig()->id()].unroll_decision() == false && nodeid_proto[graph_orig.node(i + 1)->orig()->id()].unroll_decision() == true)
+	{
+            spread_node = graph_orig.node(i);
+            std::cout << "the spread node is : " << spread_node->name() << std::endl;
+            std::cout << "the origin of the spread node is : " << spread_node->orig()->name() << std::endl;
         }
+        else if(nodeid_proto[graph_orig.node(i)->orig()->id()].unroll_decision() == true && nodeid_proto[graph_orig.node(i + 1)->orig()->id()].unroll_decision() == false)
+	 {
+            aggregate_node = graph_orig.node(i + 1);
+            std::cout << "the aggregate node is : " << aggregate_node->name() << std::endl;
+            std::cout << "the origin of the aggregate node is : " << aggregate_node->orig()->name() << std::endl;
+            break;
+	}
+
     }
     
-    //update the information in unrolled graph to determine which node is the aggregate node
+    //update the information in unrolled graph to determine which node is the spread node and which node is the aggregate node respectively
     for(int i = 0; i < graph_unroll.nodes().size();i++)
     {
-	if(graph_unroll.node(i)->orig() == aggregate_node)
+        if(graph_unroll.node(i)->orig() == spread_node)
+	{
+	spread_node = graph_unroll.node(i);
+	std::cout << "spread node is: " << spread_node->name() << std::endl;
+	}
+	else if(graph_unroll.node(i)->orig() == aggregate_node)
+	{
         aggregate_node = graph_unroll.node(i);
+	std::cout << "aggregate node is: " << aggregate_node->name() << std::endl;
+	}
     }
 
-    //(2)-Add edges for this node using the src node information for this node
+    //(2)-Add edges for spread  node using the dst node information & Add edges for aggregate node using the src node information
+    std::cout << "add edges for the spread node..." << std::endl;
+    for(const int& i: nodeid_proto[spread_node->orig()->id()].related_info())
+    //use "nodeid_proto[spread_node->orig()->id()].related_info()" as an indicator of the timestamp; for all corresponding timestamps
+    {
+        if(i == window_size - 1) continue;
+
+        for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the dst nodes of the spread node
+        {
+            if(spread_node->orig()->CheckWhetherDstNode(nodes_timeinfo[i].at(j)->orig()) == true)
+            {
+                graph_unroll.AddEdge(spread_node, nodes_timeinfo[i].at(j));
+                std::cout << "ading edge from : " << spread_node->name() << " to : " << nodes_timeinfo[i].at(j)->name() << std::endl;
+            }
+        }
+    }
+
+
+
+
     std::cout << "add edges for the aggregation node..." << std::endl;
     for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
     //use "nodeid_proto[aggregate_node->orig()->id()].related_info()" as an indicator of the timestamp; for all corresponding timestamps

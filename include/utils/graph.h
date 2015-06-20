@@ -266,7 +266,12 @@ public:
     const vector<SNode>& nodes() const
     {
         return nodes_;
-    };
+    }
+
+    const int nodes_size() const
+    {
+	return nodes_.size();
+    }
 
     const SNode& node(string name) const
     {
