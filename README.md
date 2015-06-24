@@ -1,4 +1,4 @@
-##Apache SINGA
+##Apache SINGA kaiping
 
 Distributed deep learning system
 
