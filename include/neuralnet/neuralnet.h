@@ -128,7 +128,8 @@ class NeuralNet {
   }
 
  protected:
-  void ConstructNeuralNet(const NetProto &net_proto);
+  //void ConstructNeuralNet(const NetProto &net_proto);
+  void ConstructNeuralNetRNN(const NetProto &net_proto);
   void PartitionNeuralNet();
   map<string, shared_ptr<Layer>> GetNameToLayer(
     const vector<shared_ptr<Layer>>& layers);

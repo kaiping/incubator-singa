@@ -1,0 +1,135 @@
+g++ src/neuralnet/neuralnet.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/neuralnet/neuralnet.o
+src/neuralnet/neuralnet.cc: In member function ‘void singa::NeuralNet::ConstructNeuralNetRNN(const singa::NetProto&)’:
+src/neuralnet/neuralnet.cc:155:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < graph_orig.cycle_edges().size(); i++)
+                      ^
+src/neuralnet/neuralnet.cc:178:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int j = 0; j < graph_orig.nodes().size(); j++)
+                      ^
+src/neuralnet/neuralnet.cc:246:40: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)
+                                        ^
+src/neuralnet/neuralnet.cc:248:55: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+             for(int pointer2 = pointer1 + 1; pointer2 < nodes_timeinfo[p].size(); pointer2++)
+                                                       ^
+src/neuralnet/neuralnet.cc:269:40: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
+                                        ^
+src/neuralnet/neuralnet.cc:274:48: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+                 for(int pointer2 = 0; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
+                                                ^
+src/neuralnet/neuralnet.cc:315:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < graph_.nodes().size(); i++)
+                      ^
+src/neuralnet/neuralnet.cc:336:26: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the dst nodes of the spread node
+                          ^
+src/neuralnet/neuralnet.cc:352:26: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the src nodes of the aggregation node
+                          ^
+src/neuralnet/neuralnet.cc:391:31: warning: passing ‘const string {aka const std::basic_string<char>}’ as ‘this’ argument of ‘std::basic_string<_CharT, _Traits, _Alloc>& std::basic_string<_CharT, _Traits, _Alloc>::operator=(const std::basic_string<_CharT, _Traits, _Alloc>&) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ discards qualifiers [-fpermissive]
+             new_layer1.name() = node->name();//update the name info for the nodes which are not unrolled
+                               ^
+src/neuralnet/neuralnet.cc:402:31: warning: passing ‘const string {aka const std::basic_string<char>}’ as ‘this’ argument of ‘std::basic_string<_CharT, _Traits, _Alloc>& std::basic_string<_CharT, _Traits, _Alloc>::operator=(const std::basic_string<_CharT, _Traits, _Alloc>&) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]’ discards qualifiers [-fpermissive]
+             new_layer2.name() = node->name();//update the name info for the nodes which are unrolled
+                               ^
+src/neuralnet/neuralnet.cc:452:30: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+             for(int i = 0; i < params.size(); i++)
+                              ^
+cp build/src/neuralnet/neuralnet.d build/src/neuralnet/neuralnet.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/neuralnet/neuralnet.d >> build/src/neuralnet/neuralnet.P; \
+	rm -f src/neuralnet/neuralnet.d
+g++ src/trainer/server.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/trainer/server.o
+src/trainer/server.cc: In member function ‘virtual singa::Msg* singa::Server::HandleGet(std::shared_ptr<singa::Param>, singa::Msg**)’:
+src/trainer/server.cc:107:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+cp build/src/trainer/server.d build/src/trainer/server.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/trainer/server.d >> build/src/trainer/server.P; \
+	rm -f src/trainer/server.d
+g++ src/trainer/trainer.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/trainer/trainer.o
+cp build/src/trainer/trainer.d build/src/trainer/trainer.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/trainer/trainer.d >> build/src/trainer/trainer.P; \
+	rm -f src/trainer/trainer.d
+g++ src/trainer/worker.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/trainer/worker.o
+cp build/src/trainer/worker.d build/src/trainer/worker.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/trainer/worker.d >> build/src/trainer/worker.P; \
+	rm -f src/trainer/worker.d
+g++ src/utils/blob.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/blob.o
+cp build/src/utils/blob.d build/src/utils/blob.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/blob.d >> build/src/utils/blob.P; \
+	rm -f src/utils/blob.d
+g++ src/utils/cluster.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/cluster.o
+src/utils/cluster.cc: In constructor ‘singa::Cluster::Cluster(const singa::ClusterProto&, int)’:
+src/utils/cluster.cc:23:53: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     while(std::getline(ifs, line)&&endpoints_.size()<nprocs_){
+                                                     ^
+cp build/src/utils/cluster.d build/src/utils/cluster.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/cluster.d >> build/src/utils/cluster.P; \
+	rm -f src/utils/cluster.d
+g++ src/utils/cluster_rt.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/cluster_rt.o
+src/utils/cluster_rt.cc: In member function ‘virtual bool singa::ZKClusterRT::Init()’:
+src/utils/cluster_rt.cc:29:89: warning: invalid conversion from ‘const void*’ to ‘void*’ [-fpermissive]
+   zkhandle_ = zookeeper_init(host_.c_str(), WatcherGlobal, timeout_, 0, "ZKClusterRT", 0);
+                                                                                         ^
+In file included from ./include/utils/cluster_rt.h:7:0,
+                 from src/utils/cluster_rt.cc:1:
+/usr/local/include/zookeeper/zookeeper.h:449:19: note: initializing argument 5 of ‘zhandle_t* zookeeper_init(const char*, watcher_fn, int, const clientid_t*, void*, int)’
+ ZOOAPI zhandle_t *zookeeper_init(const char *host, watcher_fn fn,
+                   ^
+cp build/src/utils/cluster_rt.d build/src/utils/cluster_rt.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/cluster_rt.d >> build/src/utils/cluster_rt.P; \
+	rm -f src/utils/cluster_rt.d
+g++ src/utils/common.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/common.o
+cp build/src/utils/common.d build/src/utils/common.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/common.d >> build/src/utils/common.P; \
+	rm -f src/utils/common.d
+g++ src/utils/data_shard.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/data_shard.o
+cp build/src/utils/data_shard.d build/src/utils/data_shard.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/data_shard.d >> build/src/utils/data_shard.P; \
+	rm -f src/utils/data_shard.d
+g++ src/utils/graph.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/graph.o
+src/utils/graph.cc: In member function ‘bool Node::CheckWhetherSrcNode(Node::SNode) const’:
+src/utils/graph.cc:20:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < srcnodes_.size(); i++)
+                      ^
+src/utils/graph.cc: In member function ‘bool Node::CheckWhetherDstNode(Node::SNode) const’:
+src/utils/graph.cc:32:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < dstnodes_.size(); i++)
+                      ^
+src/utils/graph.cc: In member function ‘void Graph::DetectCycleAndSaveCycle()’:
+src/utils/graph.cc:215:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < nodes_.size(); i++)
+                      ^
+src/utils/graph.cc:222:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int v = 0; v < nodes_.size(); v++)
+                      ^
+src/utils/graph.cc: In member function ‘bool Graph::CheckCorrectBreaking(std::pair<std::shared_ptr<Node>, std::shared_ptr<Node> >)’:
+src/utils/graph.cc:300:22: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+     for(int i = 0; i < nodes_.size(); i++)
+                      ^
+cp build/src/utils/graph.d build/src/utils/graph.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/graph.d >> build/src/utils/graph.P; \
+	rm -f src/utils/graph.d
+g++ src/utils/param.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/param.o
+cp build/src/utils/param.d build/src/utils/param.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/param.d >> build/src/utils/param.P; \
+	rm -f src/utils/param.d
+g++ src/utils/updater.cc  -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper -MMD -c -o build/src/utils/updater.o
+cp build/src/utils/updater.d build/src/utils/updater.P; \
+	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$//' \
+		-e '/^$/ d' -e 's/$/ :/' < build/src/utils/updater.d >> build/src/utils/updater.P; \
+	rm -f src/utils/updater.d
+g++ build/src/communication/msg.o build/src/communication/socket.o build/src/neuralnet/base_layer.o build/src/neuralnet/layer.o build/src/neuralnet/neuralnet.o build/src/proto/cluster.pb.o build/src/proto/model.pb.o build/src/trainer/server.o build/src/trainer/trainer.o build/src/trainer/worker.o build/src/utils/blob.o build/src/utils/cluster.o build/src/utils/cluster_rt.o build/src/utils/common.o build/src/utils/data_shard.o build/src/utils/graph.o build/src/utils/param.o build/src/utils/updater.o src/main.cc -o singa -msse2 -g -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0 -DCPU_ONLY=1 -DTHREADED -fpermissive -funroll-loops  -I/usr/include  -I./include  -I/usr/local/include/zookeeper  -L/usr/lib64  -L/usr/lib  -L/usr/local/lib  -lglog  -lgflags  -lprotobuf  -lrt  -lopencv_highgui  -lopencv_imgproc  -lopencv_core  -llmdb  -lopenblas  -lzmq  -lczmq  -lzookeeper_mt
+
