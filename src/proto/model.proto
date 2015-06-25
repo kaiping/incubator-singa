@@ -57,7 +57,7 @@ message ModelProto{
 message NetProto{
   repeated LayerProto layer=1;
   optional PartitionType partition_type=3 [default=kNone];
-  optional int32 win_size = 4 [default = 1];
+  optional int32 win_size = 4 [default = 3];
 }
 
 message ParamProto {

@@ -127,13 +127,13 @@ for(shared_ptr<Param> p: layer->GetParams())
 
 // For Recurrent Neural Network implementation
 // Function7 - if the breaking is correct, store corresponding info; otherwise, recover the edge and try another breaking
-void NeuralNet::ConstructNeuralNetRNN(const singa::NetProto& net_proto)
+void NeuralNet::ConstructNeuralNetRNN(const NetProto& net_proto)
 {
     Graph graph_orig;// original graph may have a cycle
 
     // 1-construct original graph which may contain a cycle, use each SNode can still access the LayerProto information
-    map<string, singa::LayerProto> protos;// store the corresponding information between layer name and layer_proto
-    map<int, singa::LayerProto> nodeid_proto; // store the correponding information between SNode ID and LayerProto
+    map<string, LayerProto> protos;// store the corresponding information between layer name and layer_proto
+    map<int, LayerProto> nodeid_proto; // store the correponding information between SNode ID and LayerProto
 for (auto &layer_proto : net_proto.layer())// for each layer in the neural net, add a node in the corresponding graph
     {
         SNode node_temp;
@@ -178,7 +178,6 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
     std::cout << "adding nodes..." << std::endl;
     for(int j = 0; j < graph_orig.nodes().size(); j++)
     {
-        //std::cout << "Before starting unrolling nodes, in graph_orig:  name: " << graph_orig.nodes().at(j)->name() << " timestamp: " << graph_orig.nodes().at(j)->timestamp()  << std::endl;
         if(nodeid_proto[graph_orig.nodes().at(j)->id()].unroll_decision() == true)// For the nodes which need to be unrolled
         {
             SNode nodes_j[window_size];
@@ -203,10 +202,8 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
                 //std::cout << "In graph_orig: orig node's name: " << graph_orig.node(j)->name() << " timestamp: " << graph_orig.node(j)->timestamp() << std::endl;
                 //std::cout << "orig node's name : " << nodes_j[k]->orig()->name() << " timestamp: " << nodes_j[k]->orig()->timestamp() << std::endl;
                 //std::cout << nodes_j[k]->name() << std::endl;
-                //graph_unroll.AddNode(nodes_j[k]);
                 graph_.AddNode(nodes_j[k]);
 		nodes_timeinfo[k].push_back(nodes_j[k]);
-                //std::cout << std::endl;
             }
         }
         else// For the nodes which don't need to be unrolled
@@ -227,7 +224,6 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
             new_node->set_timestamp(window_size - 1);
             new_node->set_orig(graph_orig.node(j));
             new_node->set_name(new_node->orig()->name() + "@" +std::to_string(window_size - 1));
-            //graph_unroll.AddNode(new_node);
             graph_.AddNode(new_node);
 	    nodes_timeinfo[window_size - 1].push_back(new_node);
         }
@@ -251,12 +247,12 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
                 if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherSrcNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
                 {
                     graph_.AddEdge(nodes_timeinfo[p].at(pointer2), nodes_timeinfo[p].at(pointer1));
-		    std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer2)->name() << " to : " << nodes_timeinfo[p].at(pointer1)->name() << std::endl;
+		    std::cout << "adding edge from : " << nodes_timeinfo[p].at(pointer2)->name() << " to : " << nodes_timeinfo[p].at(pointer1)->name() << std::endl;
                 }
                 else if(nodes_timeinfo[p].at(pointer1)->orig()->CheckWhetherDstNode(nodes_timeinfo[p].at(pointer2)->orig()) == true)
                 {
                     graph_.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p].at(pointer2));
-		    std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p].at(pointer2)->name() << std::endl;
+		    std::cout << "adding edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p].at(pointer2)->name() << std::endl;
                 }
             }
         }
@@ -266,20 +262,20 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
     for(int p = 0; p < window_size - 1; p++)// traverse all timestamps
     {
         //for the nodes in the neighboring timestamps
-        std::cout << "test - loop 3" << std::endl;
+        //std::cout << "test - loop 3" << std::endl;
         for(int pointer1 = 0; pointer1 < nodes_timeinfo[p].size(); pointer1++)// traverse the src node
         {
-            std::cout << "test - loop 2" << std::endl;
+            //std::cout << "test - loop 2" << std::endl;
             if(nodes_timeinfo[p].at(pointer1)->orig() == correct_breaking_edge.first)
             {
                 for(int pointer2 = 0; pointer2 < nodes_timeinfo[p + 1].size(); pointer2++)
                 {
-                    std::cout << "test - loop 1" << std::endl;
+                    //std::cout << "test - loop 1" << std::endl;
                     if(nodes_timeinfo[p + 1].at(pointer2)->orig() == correct_breaking_edge.second)
                     {
                         graph_.AddEdge(nodes_timeinfo[p].at(pointer1), nodes_timeinfo[p + 1].at(pointer2));
 			std::cout << "successfully add one edge according to correct breaking edge!" << std::endl;
-                        std::cout << "ading edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p+1].at(pointer2)->name() << std::endl;
+                        std::cout << "adding edge from : " << nodes_timeinfo[p].at(pointer1)->name() << " to : " << nodes_timeinfo[p+1].at(pointer2)->name() << std::endl;
                     }
                 }
             }
@@ -332,11 +328,13 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
 for(const int& i: nodeid_proto[spread_node->orig()->id()].related_info())
         //use "nodeid_proto[spread_node->orig()->id()].related_info()" as an indicator of the timestamp; for all corresponding timestamps
     {
+	 std::cout << "test" << std::endl;
         if(i == window_size - 1) continue;
 
         for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the dst nodes of the spread node
         {
-            if(spread_node->orig()->CheckWhetherDstNode(nodes_timeinfo[i].at(j)->orig()) == true)
+                std::cout << "test" << std::endl;
+		if(spread_node->orig()->CheckWhetherDstNode(nodes_timeinfo[i].at(j)->orig()) == true)
             {
 		graph_.AddEdge(spread_node, nodes_timeinfo[i].at(j));
                 std::cout << "adding edge from : " << spread_node->name() << " to : " << nodes_timeinfo[i].at(j)->name() << std::endl;
@@ -371,22 +369,40 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
         fout.close();
     }
 
+    for(int i = 0; i < graph_.nodes_size(); i++)
+    {
+        std::cout << graph_.node(i)->name() << std::endl;
+    }
+
+
+
 
     // the third part to implement
+   
+    std::cout << std::endl;
+    std::cout << "Construct Neural Network..." << std::endl;
     // topology sort
+
+    /*    
     graph_.Sort();
-    LOG(ERROR) << "pure graph without partition for recurrent neural network\n" << graph_.ToString();
+    */
+    //std::cout << "pure graph without partition for recurrent neural network\n" << graph_.ToString();
 
     auto* factory = Singleton<Factory<Layer>>::Instance();
 
     // create Layers according to topology order
-    map<string, singa::LayerProto> protos_unroll;//the two new map data structures store the corresponding information between node and layer
+    map<string, LayerProto> protos_unroll;//the two new map data structures store the corresponding information between node and layer
     map<string, string> layer_origlayer;
 
-for(SNode node: graph_.nodes())   
-   {
+    std::cout << "Create layers according to topological order..." << std::endl;
+    for(SNode node: graph_.nodes())   
+    {
+	std::cout << "test loop" << std::endl;
+	std::cout << "node name: " << node->name() << std::endl;
+	std::cout << "orig node name: " << node->orig()->name() << std::endl;
         if(node->orig() == node) // for the nodes which are not unrolled
         {
+	    std::cout << "This node is not unrolled..." << std::endl;
             LayerProto new_layer1;
             new_layer1 = nodeid_proto[node->id()];
             new_layer1.name() = node->name();//update the name info for the nodes which are not unrolled
@@ -398,6 +414,7 @@ for(SNode node: graph_.nodes())
             layers_.push_back(layer);
         }
         else{ // for the nodes which are unrolled
+	    std::cout << "This node is unrolled..." << std::endl;
             LayerProto new_layer2;
             new_layer2 = nodeid_proto[node->orig()->id()];
             new_layer2.name() = node->name();//update the name info for the nodes which are unrolled
@@ -412,7 +429,9 @@ for(SNode node: graph_.nodes())
     }
 
 
+
     // connect Layers using the srclayer & dstlayer information
+    std::cout << "Connect layers..." << std::endl;
     for(SNode node: graph_.nodes()) 
     {
         auto layer=name2layer_[node->name()];
@@ -423,6 +442,7 @@ for(SNode node: graph_.nodes())
     }
 
     //initialize the mapping between layer and its corresponding orig layer
+    std::cout << "Initialize the mapping between layers and their corresponding original layers..." << std::endl;
     for(SNode node: graph_.nodes())
     {
         if(node->orig() == node) // for the nodes which are not unrolled, set the origlayer as itself
@@ -436,7 +456,9 @@ for(SNode node: graph_.nodes())
     }
 
     // setup layer properties, e.g., shapes
+    std::cout << "Set up layer properties..." << std::endl;
     int paramid=0; // for one neuralnet, all the paramaters should have a distinct and ascending-order id
+
     for(auto& layer: layers_)
     {
         layer->Setup();// proto & srclayers
