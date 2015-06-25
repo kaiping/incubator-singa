@@ -15,8 +15,8 @@ namespace singa
 
 typedef std::vector<SNode> nodes_timestamp;//keep all the nodes for one timestamp
 
-// register different types of layers -- no need to change right now
-void NeuralNet::RegisterLayers()
+ // register different types of layers -- no need to change right now
+ void NeuralNet::RegisterLayers()
 {
     Factory<Layer>* factory=Singleton<Factory<Layer>>::Instance();
     factory->Register("kBridgeDst", CreateLayer(BridgeDstLayer));
@@ -172,6 +172,7 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
     // 3-unrolling - constructing unrolled & acyclic graph
     std::cout << "start unrolling..." << std::endl;
     int window_size = net_proto.win_size();
+    std::cout << "window size: " << window_size << std::endl;
     nodes_timestamp nodes_timeinfo[window_size];//keep the node information grouping by each timestamp
     // Add nodes in the graph
     std::cout << "adding nodes..." << std::endl;
@@ -359,16 +360,16 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
         }
     }
     //for testing the unrolling part of the graph
-//    std::cout << "write the graph information to string and then write to a file..." << std::endl;
-//    std::cout << "# of nodes in graph_unroll : " << graph_unroll.nodes().size() << std::endl;
-//    {
-//        //output the graph information to string and then write to a file
-//        string vis_folder=singa::Cluster::Get()->vis_folder();
-//        std::ofstream fout(vis_folder+"/nopartition.json", std::ofstream::out);
-//        fout<<graph_unroll.ToString();
-//        fout.flush();
-//        fout.close();
-//    }
+    std::cout << "write the graph information to string and then write to a file..." << std::endl;
+    std::cout << "# of nodes in graph_unroll : " << graph_.nodes().size() << std::endl;
+    {
+        //output the graph information to string and then write to a file
+        string vis_folder=singa::Cluster::Get()->vis_folder();
+        std::ofstream fout(vis_folder+"/nopartition.json", std::ofstream::out);
+        fout<<graph_.ToString();
+        fout.flush();
+        fout.close();
+    }
 
 
     // the third part to implement
