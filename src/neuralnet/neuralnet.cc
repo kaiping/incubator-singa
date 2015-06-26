@@ -167,7 +167,23 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
     }
     std::cout << "Break cycle" << std::endl;
     std::cout << "topological sorting" << std::endl;
-    graph_orig.Sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
+
+    std::cout << "Testing ORIG GRAPH before topological ordering" << std::endl;
+    for(int i = 0; i < graph_orig.nodes_size(); i++)
+    {
+        std::cout << graph_orig.node(i)->name() << std::endl;
+    }
+
+
+    //graph_orig.Sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
+
+    std::cout << "Testing ORIG GRAPH after topological ordering" << std::endl;
+    for(int i = 0; i < graph_orig.nodes_size(); i++)
+    {
+        std::cout << graph_orig.node(i)->name() << std::endl;
+    }
+
+
 
     // 3-unrolling - constructing unrolled & acyclic graph
     std::cout << "start unrolling..." << std::endl;
@@ -328,12 +344,10 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
 for(const int& i: nodeid_proto[spread_node->orig()->id()].related_info())
         //use "nodeid_proto[spread_node->orig()->id()].related_info()" as an indicator of the timestamp; for all corresponding timestamps
     {
-	 std::cout << "test" << std::endl;
         if(i == window_size - 1) continue;
 
         for(int j = 0; j < nodes_timeinfo[i].size(); j++)//for one timestamp,check the dst nodes of the spread node
         {
-                std::cout << "test" << std::endl;
 		if(spread_node->orig()->CheckWhetherDstNode(nodes_timeinfo[i].at(j)->orig()) == true)
             {
 		graph_.AddEdge(spread_node, nodes_timeinfo[i].at(j));
@@ -353,7 +367,7 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
             if(aggregate_node->orig()->CheckWhetherSrcNode(nodes_timeinfo[i].at(j)->orig()) == true)
             {
 		graph_.AddEdge(nodes_timeinfo[i].at(j), aggregate_node);
-                std::cout << "ading edge from : " << nodes_timeinfo[i].at(j)->name() << " to : " << aggregate_node->name() << std::endl;
+                std::cout << "adding edge from : " << nodes_timeinfo[i].at(j)->name() << " to : " << aggregate_node->name() << std::endl;
             }
         }
     }
@@ -369,6 +383,8 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
         fout.close();
     }
 
+    //debugging
+    std::cout << "Testing before topological ordering" << std::endl;
     for(int i = 0; i < graph_.nodes_size(); i++)
     {
         std::cout << graph_.node(i)->name() << std::endl;
@@ -383,9 +399,13 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
     std::cout << "Construct Neural Network..." << std::endl;
     // topology sort
 
-    /*    
+        
     graph_.Sort();
-    */
+    std::cout << "Testing after topological ordering" << std::endl;
+    for(int i = 0; i < graph_.nodes_size(); i++)
+    {
+        std::cout << graph_.node(i)->name() << std::endl;
+    }    
     //std::cout << "pure graph without partition for recurrent neural network\n" << graph_.ToString();
 
     auto* factory = Singleton<Factory<Layer>>::Instance();
