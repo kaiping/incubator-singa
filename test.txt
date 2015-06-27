@@ -1,2 +1,2 @@
 This is Kaiping!
-For testing!
+For testing! - singa-rnn-0627
