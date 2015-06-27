@@ -1,7 +1,7 @@
 {"directed":1,
 "nodes":[
-{"id":"1@2", "color":"black","shape":"box"}
-,{"id":"2@2", "color":"black","shape":"box"}
+{"id":"1", "color":"black","shape":"box"}
+,{"id":"2", "color":"black","shape":"box"}
 ,{"id":"3@0", "color":"blue","shape":"box"}
 ,{"id":"3@1", "color":"blue","shape":"box"}
 ,{"id":"3@2", "color":"blue","shape":"box"}
@@ -11,9 +11,9 @@
 ,{"id":"5@0", "color":"red","shape":"box"}
 ,{"id":"5@1", "color":"red","shape":"box"}
 ,{"id":"5@2", "color":"red","shape":"box"}
-,{"id":"6@2", "color":"red","shape":"box"}
-,{"id":"7@2", "color":"red","shape":"box"}
-,{"id":"8@2", "color":"red","shape":"box"}
+,{"id":"6", "color":"red","shape":"box"}
+,{"id":"7", "color":"red","shape":"box"}
+,{"id":"8", "color":"red","shape":"box"}
 ]
 ,"links":[
 {"source":0, "target":1, "color":"black"}

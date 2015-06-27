@@ -46,6 +46,7 @@ shared_ptr<NeuralNet> NeuralNet::SetupNeuralNet(const NetProto& np, Phase phase,
 {
     NetProto proto;
     proto.set_partition_type(np.partition_type());
+    proto.set_win_size(np.win_size());
     // exclude layers if necessary -- for example: the training process and the testing process are mutually exclusive, can only choose one each time
 for(auto& layer:np.layer())
     {
@@ -168,22 +169,7 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
     std::cout << "Break cycle" << std::endl;
     std::cout << "topological sorting" << std::endl;
 
-    std::cout << "Testing ORIG GRAPH before topological ordering" << std::endl;
-    for(int i = 0; i < graph_orig.nodes_size(); i++)
-    {
-        std::cout << graph_orig.node(i)->name() << std::endl;
-    }
-
-
     //graph_orig.Sort();//topology sort for the current acyclic graph which is constructed by breaking one edge
-
-    std::cout << "Testing ORIG GRAPH after topological ordering" << std::endl;
-    for(int i = 0; i < graph_orig.nodes_size(); i++)
-    {
-        std::cout << graph_orig.node(i)->name() << std::endl;
-    }
-
-
 
     // 3-unrolling - constructing unrolled & acyclic graph
     std::cout << "start unrolling..." << std::endl;
@@ -239,8 +225,9 @@ for(const string& src: layer_proto.srclayers())//src layers' definition in model
             //Update corresponding information
             new_node->set_timestamp(window_size - 1);
             new_node->set_orig(graph_orig.node(j));
-            new_node->set_name(new_node->orig()->name() + "@" +std::to_string(window_size - 1));
-            graph_.AddNode(new_node);
+            //new_node->set_name(new_node->orig()->name() + "@" +std::to_string(window_size - 1));
+            new_node->set_name(new_node->orig()->name());
+	    graph_.AddNode(new_node);
 	    nodes_timeinfo[window_size - 1].push_back(new_node);
         }
     }
@@ -391,8 +378,6 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
     }
 
 
-
-
     // the third part to implement
    
     std::cout << std::endl;
@@ -417,10 +402,9 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
     std::cout << "Create layers according to topological order..." << std::endl;
     for(SNode node: graph_.nodes())   
     {
-	std::cout << "test loop" << std::endl;
 	std::cout << "node name: " << node->name() << std::endl;
 	std::cout << "orig node name: " << node->orig()->name() << std::endl;
-        if(node->orig() == node) // for the nodes which are not unrolled
+        if(node->orig()->name() == node->name()) // for the nodes which are not unrolled
         {
 	    std::cout << "This node is not unrolled..." << std::endl;
             LayerProto new_layer1;
@@ -465,7 +449,7 @@ for(const int& i: nodeid_proto[aggregate_node->orig()->id()].related_info())
     std::cout << "Initialize the mapping between layers and their corresponding original layers..." << std::endl;
     for(SNode node: graph_.nodes())
     {
-        if(node->orig() == node) // for the nodes which are not unrolled, set the origlayer as itself
+        if(node->orig()->name() == node->name()) // for the nodes which are not unrolled, set the origlayer as itself
         {
             layer_origlayer[node->name()] = node->name();
         }
