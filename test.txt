@@ -1,2 +1,3 @@
 This is Kaiping!
-For testing! - singa-rnn-0627
+For testing! - singa-rnn
+The current problem is due to one layer can have multiple src layers
