@@ -413,7 +413,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
 
         auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //?closed [start, end]
-        Tensor<cpu, 1> y1(data.dptr + hdim_ * t, shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
+        Tensor<cpu, 1> y1(data.dptr + hdim_ * t, Shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
         y1 = dot(sigmoidData[t], weightPart1.T());
         Tensor<cpu, 1> y2(data.dptr + hdim_ * t + classsize_ + startVocabIndex, shape1(endVocabIndex - startVocabIndex + 1));
         y2 = dot(sigmoidData[t], weightPart2Slice.T()); // Directly modify the value of "data"
@@ -463,49 +463,56 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
     auto weightPart1 = weight.Slice(0, classsize_);  //(10, 30), the slicing operation is by row
     auto weightPart2 = weight.Slice(classsize_, classsize_ + vocabsize_);  //(10000, 30), the slicing operation is by row
 
-    if(srclayers_[0]->mutable_grad(this) != nullptr){
+    if(srclayers_[0]->mutable_grad(this) != nullptr) {
         auto gsrc = Tensor2(srclayers_[0]->mutable_grad(this)); //(10,30), i.e., (window_size, 30)
-    }
 
-    memset(gweight.dptr, 0 , sizeof(float) * gweight.shape[0] * gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
 
-    for(int t = 0; t < windowsize_; t++){
-        //Obtain ground truth information
-        int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
-        int endVocabIndex = static_cast<int>(label[t * 4 + 1]);
-        int wordIndex = static_cast<int>(label[t * 4 + 2]); //ground truth word index
-        int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
+        memset(gweight.dptr, 0, sizeof(float) * gweight.shape[0] *
+                                                gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
 
-        auto gweightPart2Slice = gweightPart2.Slice(startVocabIndex, endVocabIndex + 1);    //e.g, (150, 30), set # of words in ground truth class is 150
-        auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);    //e.g, (150, 30), set # of words in ground truth class is 150
+        for (int t = 0; t < windowsize_; t++) {
+            //Obtain ground truth information
+            int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
+            int endVocabIndex = static_cast<int>(label[t * 4 + 1]);
+            int wordIndex = static_cast<int>(label[t * 4 + 2]); //ground truth word index
+            int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
 
-        //Compute the gradient for the current layer
-        //To check later: can compute values for one t and then back propagate the error/gradient?
-        for(int i = 0; i < classsize_; i++){
-            grad[t][i] = 0 - data[t][i];
-        }
-        grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
+            auto gweightPart2Slice = gweightPart2.Slice(startVocabIndex, endVocabIndex +
+                                                                         1);    //e.g, (150, 30), set # of words in ground truth class is 150
+            auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex +
+                                                                       1);    //e.g, (150, 30), set # of words in ground truth class is 150
 
-        for(int j = classsize_; j < classsize_ + vocabsize_; j++){
-            if(j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
-                grad[t][j] = 0 - data[t][j];
+            //Compute the gradient for the current layer
+            //To check later: can compute values for one t and then back propagate the error/gradient?
+            for (int i = 0; i < classsize_; i++) {
+                grad[t][i] = 0 - data[t][i];
             }
-            else {
-                grad[t][j] = 0;
+            grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
+
+            for (int j = classsize_; j < classsize_ + vocabsize_; j++) {
+                if (j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
+                    grad[t][j] = 0 - data[t][j];
+                }
+                else {
+                    grad[t][j] = 0;
+                }
+                grad[t][classsize_ + wordIndex] =
+                        1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
             }
-            grad[t][classsize_ + wordIndex] = 1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
+
+            //Compute the gradient for the weight matrix, the loop is for various timestamps T
+            Tensor <cpu, 2> gradPart1(grad[t].mutable_cpu_data(), Shape2(classsize_, 1));   //(10,1)
+            gweightPart1 += dot(gradPart1, src[t]);  //aggregate all updates for this weight matrix together
+            Tensor <cpu, 2> gradPart2Slice(grad[t].mutable_cpu_data() + classsize_ + startVocabIndex,
+                                           Shape2(endVocabIndex - startVocabIndex + 1, 1));
+            gweightPart2Slice += dot(gradPart2Slice, src[t]);
+
+            //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
+            Tensor <cpu, 2> gradPart1ForSrc(grad[t].mutable_cpu_data(), Shape2(1, classsize_));   //(1,10)
+            Tensor <cpu, 2> gradPart2SliceForSrc(grad[t].mutable_cpu_data() + classsize_ + startVocabIndex,
+                                                 Shape2(1, endVocabIndex - startVocabIndex + 1));  //(1,150)
+            gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
         }
-
-        //Compute the gradient for the weight matrix, the loop is for various timestamps T
-        Tensor<cpu, 2> gradPart1 (grad[t].mutable_cpu_data(), Shape2(classsize_, 1));   //(10,1)
-        gweightPart1 += dot(gradPart1, src[t]);  //aggregate all updates for this weight matrix together
-        Tensor<cpu, 2> gradPart2Slice (grad[t].mutable_cpu_data() + classsize_ + startVocabIndex, Shape2(endVocabIndex - startVocabIndex + 1, 1));
-        gweightPart2Slice += dot(gradPart2Slice, src[t]);
-
-        //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
-        Tensor<cpu, 2> gradPart1ForSrc (grad[t].mutable_cpu_data(), Shape2(1, classsize_));   //(1,10)
-        Tensor<cpu, 2> gradPart2SliceForSrc (grad[t].mutable_cpu_data() + classsize_ + startVocabIndex, Shape2(1, endVocabIndex - startVocabIndex + 1));  //(1,150)
-        gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
     }
 }
 
@@ -551,25 +558,28 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
     auto grad = Tensor2(&grad_);    //(win_size, 30)
     auto weight = Tensor2(weight_->mutable_data()); //(30,30)
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
-    if(srclayers_[0]->mutable_grad(this) != nullptr){
+    if(srclayers_[0]->mutable_grad(this) != nullptr) {
         auto gsrc = Tensor2(srclayers_[0]->mutable_grad(this)); //(10,30), i.e., (window_size, 30)
-    }
 
 
-    memset(gweight.dptr, 0 , sizeof(float) * gweight.shape[0] * gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
-    //1-Update the gradient for the current layer, add a new term
-    for(int t = windowsize_ - 2; t >= 0; t--){   //grad[windowsize_ - 1] does not have this term
-        grad[t] += dot(grad[t + 1], weight);
-    }
 
-    //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer; the loop is for various timestamps T
-    for(int t = 0; t < windowsize_; t++){
-        if(t == 0){
-            gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
+        memset(gweight.dptr, 0, sizeof(float) * gweight.shape[0] *
+                                                gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
+        //1-Update the gradient for the current layer, add a new term
+        for (int t = windowsize_ - 2; t >= 0; t--) {   //grad[windowsize_ - 1] does not have this term
+            grad[t] += dot(grad[t + 1], weight);
         }
-        else{
-            gweight += dot(data[t - 1].T(), grad[t]);   //aggregate all updates for this weight matrix
-            gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value
+
+        //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer; the loop is for various timestamps T
+        for (int t = 0; t < windowsize_; t++) {
+            if (t == 0) {
+                gsrc[t] = F<op::sigmoid_grad>(data[t]) *
+                          grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
+            }
+            else {
+                gweight += dot(data[t - 1].T(), grad[t]);   //aggregate all updates for this weight matrix
+                gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value
+            }
         }
     }
 }
@@ -605,23 +615,24 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   }
 }
 
-void RnnlmInnerProductLayer::ComputeGradient(Phase phas) {
+void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
     auto data = Tensor2(&data_);    //(win_size, 30)
     auto grad = Tensor2(&grad_);    //(win_size, 30)
     auto weight = Tensor2(weight_->mutable_data()); //(|V|,30)
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
     auto src = Tensor2(srclayers_[0]->mutable_data(this)); //Shape for src is (window_size, 30)
 
-    if(srclayers_[0]->mutable_grad(this) != nullptr){   //Why have to check this?
+    if(srclayers_[0]->mutable_grad(this) != nullptr) {   //Why have to check this?
         auto gsrc = Tensor2(srclayers_[0]->mutable_grad(this)); //(10,|V|), i.e., (window_size, |V|)
-    }
 
-    memset(gweight.dptr, 0 , sizeof(float) * gweight.shape[0] * gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
+        memset(gweight.dptr, 0, sizeof(float) * gweight.shape[0] *
+                                                gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
 
-    //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer;
-    for(int t = 0; t < windowsize_; t++){
-        gweight += dot(src[t].T(), grad[t]);
-        gsrc[t] = dot(grad[t], weight.T());
+        //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer;
+        for (int t = 0; t < windowsize_; t++) {
+            gweight += dot(src[t].T(), grad[t]);
+            gsrc[t] = dot(grad[t], weight.T());
+        }
     }
 }
 
