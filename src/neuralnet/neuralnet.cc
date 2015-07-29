@@ -38,10 +38,10 @@ void NeuralNet::RegisterLayers() {
 
   // for implementation of RNNLM
   RegisterLayer(factory, RnnlmData);
-  RegisterLayer(factory, RnnlmClassParser);
-  RegisterLayer(factory, RnnlmWordParser);
-  RegisterLayer(factory, RnnlmWordInput);
-  RegisterLayer(factory, RnnlmInnerProduct);
+  RegisterLayer(factory, RnnlmClassparser);
+  RegisterLayer(factory, RnnlmWordparser);
+  RegisterLayer(factory, RnnlmWordinput);
+  RegisterLayer(factory, RnnlmInnerproduct);
   RegisterLayer(factory, RnnlmSigmoid);
   RegisterLayer(factory, RnnlmComputation);
 
