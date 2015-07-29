@@ -382,7 +382,7 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
     Layer::Setup(proto, npartitions);
     CHECK_EQ(srclayers_.size(), 2); //RnnlmComputationLayer has 2 src layers, 1st one: SigmoidLayer, 2nd one: ClassParser
     const auto& sigmoidData = srclayers_[0]->data(this);
-    const auto& labelData = srclayers_[1]->data(this);  //The order of src layers are due to conf order; labelData has the shape (windowsize_,4)
+    //const auto& labelData = srclayers_[1]->data(this);  //The order of src layers are due to conf order; labelData has the shape (windowsize_,4)
     windowsize_= sigmoidData.shape()[0];
     vdim_ = sigmoidData.count()/windowsize_;   //e.g, 30; dimension of input
     classsize_ = static_cast<RnnlmClassparserLayer*>(srclayers_[1])->classsize(); //10 here, use type casting
@@ -399,7 +399,7 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
 void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     auto data = Tensor2(&data_);    //(window_size, 10010)
     auto sigmoidData = Tensor2(srclayers_[0]->mutable_data(this));  //mutable_data means data with a variable length
-    const int * label = srclayers_[1]->data(this).cpu_data(); //The shape should be (windowsize_,4); a quadruple: start and end vocabulary index for the ground truth class; then the word index in vocabulary; then finally the class for the input word
+    const float * label = srclayers_[1]->data(this).cpu_data(); //The shape should be (windowsize_,4); a quadruple: start and end vocabulary index for the ground truth class; then the word index in vocabulary; then finally the class for the input word
     auto weight = Tensor2(weight_->mutable_data());
 
     auto weightPart1 = weight.Slice(0, classsize_);  //slice is [) form (10, 30), the slicing operation is by row
@@ -453,7 +453,7 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
     auto data = Tensor2(&data_);    //(win_size, 10010)
     auto grad = Tensor2(&grad_);    //(win_size, 10010)
     auto src = Tensor2(srclayers_[0]->mutable_data(this));
-    const int * label = srclayers_[1]->data(this).cpu_data();   //offer the ground truth info
+    const float * label = srclayers_[1]->data(this).cpu_data();   //offer the ground truth info
 
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
     auto gweightPart1 = gweight.Slice(0, classsize_);  //slice is [) form (10, 30), the slicing operation is by row
