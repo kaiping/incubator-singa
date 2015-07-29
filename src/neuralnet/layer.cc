@@ -727,10 +727,10 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   int max_vocabidx_end = 0;
   for(int i = 0; i < classsize_; i++){
     classshard_->Next(&class_key, &sample_);
-    classinfo_[i][0] = sample.class_record().start();
-    classinfo_[i][1] = sample.class_record().end();
-    if(sample.class_record().end() > max_vocabidx_end){
-        max_vocabidx_end = sample.class_record().end();
+    classinfo_[i][0] = sample_.class_record().start();
+    classinfo_[i][1] = sample_.class_record().end();
+    if(sample_.class_record().end() > max_vocabidx_end){
+        max_vocabidx_end = sample_.class_record().end();
     }
   }
   vocabsize_ = max_vocabidx_end + 1;
