@@ -238,7 +238,7 @@ private:
     int vdim_;//dimension of input
     //int batchsize_;
     int windowsize_; // Use windowsize_ to represent different timestamps
-    Param* weight_; // Delete the parameter "bias" as there is no need to use “bias” according to the paper
+    Param* weight_; // Delete the parameter "bias" as there is no need to use ï¿½biasï¿½ according to the paper
     float sum_;
     int classsize_;
     int vocabsize_;
@@ -349,7 +349,7 @@ class RnnlmWordinputLayer: public Layer {
 /**
   * 5-RnnlmWordparserLayer
   */
-class RnnlmWordParserLayer: public ParserLayer {
+class RnnlmWordparserLayer: public ParserLayer {
  public:
   using ParserLayer::ParseRecords;
   //using Layer::partition_dim;   //to check later? using Layer:: or ParserLayer:: ?
@@ -374,7 +374,7 @@ class RnnlmWordParserLayer: public ParserLayer {
 /**
   * 6-RnnlmClassparserLayer
   */
-class RnnlmClassParserLayer: public ParserLayer {
+class RnnlmClassparserLayer: public ParserLayer {
  public:
   using ParserLayer::ParseRecords;
 
