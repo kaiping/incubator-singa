@@ -36,6 +36,15 @@ void NeuralNet::RegisterLayers() {
   RegisterLayer(factory, RBMVis);
   RegisterLayer(factory, RBMHid);
 
+  // for implementation of RNNLM
+  RegisterLayer(factory, RnnlmData);
+  RegisterLayer(factory, RnnlmClassParser);
+  RegisterLayer(factory, RnnlmWordParser);
+  RegisterLayer(factory, RnnlmWordInput);
+  RegisterLayer(factory, RnnlmInnerProduct);
+  RegisterLayer(factory, RnnlmSigmoid);
+  RegisterLayer(factory, RnnlmComputation);
+
 #ifdef USE_OPTIONAL_LAYER
   RegisterLayer(factory, LMDBData);
 #endif
