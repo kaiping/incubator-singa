@@ -412,7 +412,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         //int wordIndex = static_cast<int>(label[t * 4 + 2]); //ground truth word index
         //int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
 
-        auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //?closed [start, end]
+        auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //closed [start, end]
         Tensor<cpu, 1> y1(data.dptr + hdim_ * t, Shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
         y1 = dot(sigmoidData[t], weightPart1.T());
         Tensor<cpu, 1> y2(data.dptr + hdim_ * t + classsize_ + startVocabIndex, Shape1(endVocabIndex - startVocabIndex + 1));
@@ -659,7 +659,7 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto data = Tensor2(&data_);
-  const auto& src = Tensor2(srclayers_[0]->data(this));
+  const auto& src = srclayers_[0]->data(this);
   auto weight = Tensor2(weight_->mutable_data());
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     data[t] = weight[src[t]];
