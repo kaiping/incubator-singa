@@ -658,16 +658,14 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
-  auto data = Tensor2(&data_);
-  auto src = Tensor2(srclayers_[0]->mutable_data(this));  //1-Dimension {window_size}
-  auto weight = Tensor2(weight_->mutable_data());
-    float *data_dptr = data.dptr;
-    const float *weight_dptr = weight.dptr;
-    float *src_dptr = src.dptr;
+  //auto data = Tensor2(&data_);
+    float *data_dptr = &data_;
+    float *src_dptr = srclayers_[0]->mutable_data(this);
+  //auto weight = Tensor2(weight_->mutable_data());
+    float *weight_dptr = weight_->mutable_data();
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     //data[t] = weight[src[t]];
-      int weight_row_idx = static_cast<int>(hdim_ * src_dptr[t]);
-      memcpy(data_dptr[hdim_ * t], weight_dptr[weight_row_idx], sizeof(float) * hdim_);
+      memcpy(data_dptr + hdim_ * t, weight_dptr + hdim_ * static_cast<int>(src_dptr[t]), sizeof(float) * hdim_);
   }
 }
 
