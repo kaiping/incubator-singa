@@ -659,7 +659,7 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto data = Tensor2(&data_);
-  const auto& src = srclayers_[0]->data(this);
+  const auto& src = Tensor2(srclayers_[0]->data(this));
   auto weight = Tensor2(weight_->mutable_data());
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     data[t] = weight[src[t]];
