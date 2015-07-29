@@ -501,15 +501,15 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             }
 
             //Compute the gradient for the weight matrix, the loop is for various timestamps T
-            Tensor <cpu, 2> gradPart1(grad[t].mutable_cpu_data(), Shape2(classsize_, 1));   //(10,1)
+            Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)
             gweightPart1 += dot(gradPart1, src[t]);  //aggregate all updates for this weight matrix together
-            Tensor <cpu, 2> gradPart2Slice(grad[t].mutable_cpu_data() + classsize_ + startVocabIndex,
+            Tensor <cpu, 2> gradPart2Slice(grad[t].dptr + classsize_ + startVocabIndex,
                                            Shape2(endVocabIndex - startVocabIndex + 1, 1));
             gweightPart2Slice += dot(gradPart2Slice, src[t]);
 
             //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
-            Tensor <cpu, 2> gradPart1ForSrc(grad[t].mutable_cpu_data(), Shape2(1, classsize_));   //(1,10)
-            Tensor <cpu, 2> gradPart2SliceForSrc(grad[t].mutable_cpu_data() + classsize_ + startVocabIndex,
+            Tensor <cpu, 2> gradPart1ForSrc(grad[t].dptr, Shape2(1, classsize_));   //(1,10)
+            Tensor <cpu, 2> gradPart2SliceForSrc(grad[t].dptr + classsize_ + startVocabIndex,
                                                  Shape2(1, endVocabIndex - startVocabIndex + 1));  //(1,150)
             gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
         }
@@ -616,7 +616,7 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
-    auto data = Tensor2(&data_);    //(win_size, 30)
+    //auto data = Tensor2(&data_);    //(win_size, 30)
     auto grad = Tensor2(&grad_);    //(win_size, 30)
     auto weight = Tensor2(weight_->mutable_data()); //(|V|,30)
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
