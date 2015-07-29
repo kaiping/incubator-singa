@@ -409,8 +409,8 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     for(int t = 0; t < windowsize_; t++){
         int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
         int endVocabIndex = static_cast<int>(label[t * 4 + 1]);
-        int wordIndex = static_cast<int>(label[t * 4 + 2]); //ground truth word index
-        int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
+        //int wordIndex = static_cast<int>(label[t * 4 + 2]); //ground truth word index
+        //int classIndex = static_cast<int>(label[t * 4 + 3]);    //ground truth class index
 
         auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //?closed [start, end]
         Tensor<cpu, 1> y1(data.dptr + hdim_ * t, Shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
