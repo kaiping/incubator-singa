@@ -415,7 +415,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //?closed [start, end]
         Tensor<cpu, 1> y1(data.dptr + hdim_ * t, Shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
         y1 = dot(sigmoidData[t], weightPart1.T());
-        Tensor<cpu, 1> y2(data.dptr + hdim_ * t + classsize_ + startVocabIndex, shape1(endVocabIndex - startVocabIndex + 1));
+        Tensor<cpu, 1> y2(data.dptr + hdim_ * t + classsize_ + startVocabIndex, Shape1(endVocabIndex - startVocabIndex + 1));
         y2 = dot(sigmoidData[t], weightPart2Slice.T()); // Directly modify the value of "data"
     }
 
@@ -661,7 +661,6 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto data = Tensor2(&data_);
   const auto& src = srclayers_[0]->data(this);
   auto weight = Tensor2(weight_->mutable_data());
-
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     data[t] = weight[src[t]];
   }
@@ -669,6 +668,7 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
    const auto& src = srclayers_[0]->data(this);
+   auto weight = Tensor2(weight_->mutable_data());
    auto grad = Tensor2(&grad_);    //(win_size, |V|)
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
@@ -677,21 +677,21 @@ void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
 }
 
 /*********** 5-Implementation for RnnlmWordparserLayer **********/
-void RnnlmWordParserLayer::Setup(const LayerProto& proto, int npartitions){
+void RnnlmWordparserLayer::Setup(const LayerProto& proto, int npartitions){
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(), 1);
   windowsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->windowsize();
   vocabsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->vocabsize();
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
-void RnnlmWordParserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
     for(int i = 0; i < records.size() - 1; i++){//The first windowsize_ records in input "windowsize_ + 1" records
         data_[i] = records[i].word_record().word_index();
     }
 }
 
 /*********** 6-Implementation for RnnlmClassparserLayer **********/
-void RnnlmClassParserLayer::Setup(const LayerProto& proto, int npartitions){
+void RnnlmClassparserLayer::Setup(const LayerProto& proto, int npartitions){
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(), 1);
   windowsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->windowsize();
@@ -699,7 +699,7 @@ void RnnlmClassParserLayer::Setup(const LayerProto& proto, int npartitions){
   classsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->classsize();
   data_.Reshape(vector<int>{windowsize_, 4});
 }
-void RnnlmClassParserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
     for(int i = 1; i < records.size(); i++){//The last windowsize_ records in input "windowsize_ + 1" records
         int tmp_class_idx = records[i].word_record().class_index();
         data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
@@ -721,8 +721,8 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   string class_key, word_key;
   windowsize_ = proto.rnnlmdata_conf().window_size();
   records_.resize(windowsize_ + 1);
-  classsize_ = classshard_.count(); //First read through class_shard and obtain values for class_size and vocab_size
-  classinfo_.Reshape(vector<int>{classsize_, 2})    //classsize_ rows and 2 columns
+  classsize_ = classshard_->Count(); //First read through class_shard and obtain values for class_size and vocab_size
+  classinfo_.Reshape(vector<int>{classsize_, 2});    //classsize_ rows and 2 columns
 
   int max_vocabidx_end = 0;
   for(int i = 0; i < classsize_; i++){
@@ -748,7 +748,7 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
       CHECK(wordshard_->Next(&key, &records_[i]));
     }
   }*/   //When not throw the ending words ( < window_size)
-  CHECK(records_.size() <= wordshard_ -> count());
+  CHECK(records_.size() <= wordshard_->Count());
   records_[0] = records_[windowsize_];
   while (true) {
 	bool flag = true;
