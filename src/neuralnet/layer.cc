@@ -484,7 +484,7 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
 
             //Compute the gradient for the current layer
             //To check later: can compute values for one t and then back propagate the error/gradient?
-            for (int i = 0; i < classsize_; i++) {
+            for (int i = 0; i < classsize_; i++) {  //TODO kaiping change or not?
                 grad[t][i] = 0 - data[t][i];
             }
             grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
@@ -548,7 +548,7 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
             data[t] = F<op::sigmoid>(src[t]);
         }
         else{
-            data[t] = dot(data[t - 1], weight) + F<op::sigmoid>(src[t]);
+            data[t] = dot(data[t - 1], weight) + F<op::sigmoid>(src[t]);    //TODO kaiping to change or not?
         }
     }
 }
@@ -567,7 +567,7 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
                                                 gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
         //1-Update the gradient for the current layer, add a new term
         for (int t = windowsize_ - 2; t >= 0; t--) {   //grad[windowsize_ - 1] does not have this term
-            grad[t] += dot(grad[t + 1], weight);
+            grad[t] += dot(grad[t + 1], weight);    //TODO kaiping to change or not?
         }
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer; the loop is for various timestamps T
@@ -611,7 +611,7 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto weight = Tensor2(weight_->mutable_data());
 
   for(int t = 0; t < windowsize_; t++){
-    data[t] = dot(src[t], weight);  //TODO to check whether dot( , ) function can be used between vectors and matrices
+    data[t] = dot(src[t], weight);  //TODO kaiping to check whether dot( , ) function can be used between vectors and matrices
   }
 }
 
@@ -659,10 +659,15 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto data = Tensor2(&data_);
-  const auto& src = srclayers_[0]->data(this);
+  auto src = Tensor2(srclayers_[0]->mutable_data(this));  //1-Dimension {window_size}
   auto weight = Tensor2(weight_->mutable_data());
+    float *data_dptr = data.dptr;
+    const float *weight_dptr = weight.dptr;
+    float *src_dptr = src.dptr;
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
-    data[t] = weight[src[t]];
+    //data[t] = weight[src[t]];
+      int weight_row_idx = static_cast<int>(hdim_ * src_dptr[t]);
+      memcpy(data_dptr[hdim_ * t], weight_dptr[weight_row_idx], sizeof(float) * hdim_);
   }
 }
 
