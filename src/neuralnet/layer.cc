@@ -385,8 +385,8 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
     const auto& labelData = srclayers_[1]->data(this);  //The order of src layers are due to conf order; labelData has the shape (windowsize_,4)
     windowsize_= sigmoidData.shape()[0];
     vdim_ = sigmoidData.count()/windowsize_;   //e.g, 30; dimension of input
-    classsize_ = static_cast<RnnlmClassparserLayer>(srclayers_[1])->classsize(); //10 here, use type casting
-    vocabsize_ = static_cast<RnnlmClassparserLayer>(srclayers_[1])->vocabsize(); //10000 here, use type casting
+    classsize_ = static_cast<RnnlmClassparserLayer*>(srclayers_[1])->classsize(); //10 here, use type casting
+    vocabsize_ = static_cast<RnnlmClassparserLayer*>(srclayers_[1])->vocabsize(); //10000 here, use type casting
     hdim_ = classsize_ + vocabsize_; //e.g, 10010 if VocabSize=10000, ClassSize=10; TODO implement getVocabSize() and getClassSize() on LabelLayer
     data_.Reshape(vector<int>{windowsize_, hdim_});
     grad_.ReshapeLike(data_);
@@ -642,7 +642,7 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
   grad_.ReshapeLike(data_);
   Factory<Param>* factory=Singleton<Factory<Param>>::Instance();
   weight_ = factory->Create("Param");
-  vocabsize_ = static_cast<RnnlmWordparserLayer>(srclayers_[0])->vocabsize();   //use type casting static_cast or dynamic_cast?
+  vocabsize_ = static_cast<RnnlmWordparserLayer*>(srclayers_[0])->vocabsize();   //use type casting static_cast or dynamic_cast?
   weight_->Setup(proto.param(0), vector<int>{vocabsize_, hdim_});
 }
 
@@ -669,8 +669,8 @@ void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
 void RnnlmWordParserLayer::Setup(const LayerProto& proto, int npartitions){
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(), 1);
-  windowsize_ = static_cast<DataLayer*>(srclayers_[0])->windowsize();
-  vocabsize_ = static_cast<DataLayer*>(srclayers_[0])->vocabsize();
+  windowsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->windowsize();
+  vocabsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->vocabsize();
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
 void RnnlmWordParserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
@@ -683,16 +683,16 @@ void RnnlmWordParserLayer::ParseRecords(Phase phase, const vector<Record>& recor
 void RnnlmClassParserLayer::Setup(const LayerProto& proto, int npartitions){
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(), 1);
-  windowsize_ = static_cast<DataLayer*>(srclayers_[0])->windowsize();
-  vocabsize_ = static_cast<DataLayer*>(srclayers_[0])->vocabsize();
-  classsize_ = static_cast<DataLayer*>(srclayers_[0])->classsize();
+  windowsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->windowsize();
+  vocabsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->vocabsize();
+  classsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->classsize();
   data_.Reshape(vector<int>{windowsize_, 4});
 }
 void RnnlmClassParserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
     for(int i = 1; i < records.size(); i++){//The last windowsize_ records in input "windowsize_ + 1" records
         int tmp_class_idx = records[i].word_record().class_index();
-        data_[i][0] = (*(static_cast<DataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
-        data_[i][1] = (*(static_cast<DataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
+        data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
+        data_[i][1] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
         data_[i][2] = records[i].word_record().word_index();
         data_[i][3] = tmp_class_idx;
     }
