@@ -414,9 +414,9 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
 
         auto weightPart2Slice = weightPart2.Slice(startVocabIndex, endVocabIndex + 1);  //closed [start, end]
         Tensor<cpu, 1> y1(data.dptr + hdim_ * t, Shape1(classsize_));    //hdim_ = classsize_ + vocabsize_
-        y1 = dot(sigmoidData[t], weightPart1.T());
+        y1 = dot(sigmoidData[t], weightPart1.T());  //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         Tensor<cpu, 1> y2(data.dptr + hdim_ * t + classsize_ + startVocabIndex, Shape1(endVocabIndex - startVocabIndex + 1));
-        y2 = dot(sigmoidData[t], weightPart2Slice.T()); // Directly modify the value of "data"
+        y2 = dot(sigmoidData[t], weightPart2Slice.T()); // Directly modify the value of "data" - TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
     }
 
     //Compute p1(t), p2(t) using the computed value of y1 and y2 and then copy to the "data" of ComputationLayer; Additionally compute the sum_ value
@@ -508,10 +508,12 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             gweightPart2Slice += dot(gradPart2Slice, src[t]);
 
             //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
-            Tensor <cpu, 2> gradPart1ForSrc(grad[t].dptr, Shape2(1, classsize_));   //(1,10)
-            Tensor <cpu, 2> gradPart2SliceForSrc(grad[t].dptr + classsize_ + startVocabIndex,
-                                                 Shape2(1, endVocabIndex - startVocabIndex + 1));  //(1,150)
-            gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
+            Tensor <cpu, 1> gradPart1ForSrc(grad[t].dptr, Shape1(classsize_));   //(1,10)
+            Tensor <cpu, 1> gradPart2SliceForSrc(grad[t].dptr + classsize_ + startVocabIndex,
+                                                 Shape1(endVocabIndex - startVocabIndex + 1));  //(1,150)
+            //gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
+            gsrc[t] = dot(gradPart1ForSrc, weightPart1);    //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
+            gsrc[t] += dot(gradPart2SliceForSrc, weightPart2Slice); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
     }
 }
@@ -548,7 +550,9 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
             data[t] = F<op::sigmoid>(src[t]);
         }
         else{
-            data[t] = dot(data[t - 1], weight) + F<op::sigmoid>(src[t]);    //TODO kaiping to change or not?
+            //data[t] = dot(data[t - 1], weight) + F<op::sigmoid>(src[t]);
+            data[t] = dot(data[t - 1], weight); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
+            data[t] += F<op::sigmoid>(src[t]);
         }
     }
 }
@@ -567,7 +571,7 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
                                                 gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
         //1-Update the gradient for the current layer, add a new term
         for (int t = windowsize_ - 2; t >= 0; t--) {   //grad[windowsize_ - 1] does not have this term
-            grad[t] += dot(grad[t + 1], weight);    //TODO kaiping to change or not?
+            grad[t] += dot(grad[t + 1], weight);    //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer; the loop is for various timestamps T
@@ -577,7 +581,7 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
                           grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
             }
             else {
-                gweight += dot(data[t - 1].T(), grad[t]);   //aggregate all updates for this weight matrix
+                gweight += dot(data[t - 1].T(), grad[t]);   //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1)
                 gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value
             }
         }
@@ -611,7 +615,7 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto weight = Tensor2(weight_->mutable_data());
 
   for(int t = 0; t < windowsize_; t++){
-    data[t] = dot(src[t], weight);  //TODO kaiping to check whether dot( , ) function can be used between vectors and matrices
+    data[t] = dot(src[t], weight);  //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
   }
 }
 
@@ -630,8 +634,8 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer;
         for (int t = 0; t < windowsize_; t++) {
-            gweight += dot(src[t].T(), grad[t]);
-            gsrc[t] = dot(grad[t], weight.T());
+            gweight += dot(src[t].T(), grad[t]);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1)
+            gsrc[t] = dot(grad[t], weight.T());     //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
     }
 }
