@@ -689,8 +689,11 @@ void RnnlmWordparserLayer::Setup(const LayerProto& proto, int npartitions){
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
 void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+    Blob<float> *data_dptr = &data_;
+    float *data_dptr_tmp = data_dptr->mutable_cpu_data();
     for(int i = 0; i < records.size() - 1; i++){//The first windowsize_ records in input "windowsize_ + 1" records
-        data_[i] = records[i].word_record().word_index();
+        //data_[i] = records[i].word_record().word_index();
+        data_dptr_tmp[i] = records[i].word_record().word_index();
     }
 }
 
