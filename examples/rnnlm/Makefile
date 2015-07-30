@@ -17,8 +17,8 @@ rnnlm:
 	rm $(filename)
 
 create:
-	$(CXX) create_shard.cc -std=c++11 -lsinga -lprotobuf -lglog -I../../include \
-		-L../../.libs/ -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
+	$(CXX) create_shard.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include \
+		-L../../.libs/ -L/usr/local/lib -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
 		-o create_shard.bin
 	for d in $(dirshards); do mkdir -p $${d}; done 
 	./create_shard.bin $(dirname)/train $(numclass)
