@@ -637,12 +637,12 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
-    //auto data = Tensor2(&data_);    //(win_size, 30)
     auto grad = Tensor2(&grad_);    //(win_size, 30)
     auto weight = Tensor2(weight_->mutable_data()); //(|V|,30)
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
-    auto src = Tensor2(srclayers_[0]->mutable_data(this)); //Shape for src is (window_size, 30)
-
+    //auto src = Tensor2(srclayers_[0]->mutable_data(this)); //Shape for src is (window_size, 30)
+    Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
+    float *src_ptr_tmp = src_ptr->mutable_cpu_data();
     if(srclayers_[0]->mutable_grad(this) != nullptr) {   //Why have to check this?
         auto gsrc = Tensor2(srclayers_[0]->mutable_grad(this)); //(10,|V|), i.e., (window_size, |V|)
 
@@ -651,7 +651,8 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer;
         for (int t = 0; t < windowsize_; t++) {
-            Tensor <cpu, 2> src_t_trans(src[t].dptr, Shape2(vdim_, 1));   //(|V|,1)
+            //Tensor <cpu, 2> src_t_trans(src[t].dptr, Shape2(vdim_, 1));   //(|V|,1)
+            Tensor <cpu, 2> src_t_trans(src_ptr_tmp + t * hdim_, Shape2(vdim_, 1));   //(|V|,1)
             Tensor <cpu, 2> grad_t(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
             gweight += dot(src_t_trans, grad_t);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
             gsrc[t] = dot(grad[t], weight.T());     //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
