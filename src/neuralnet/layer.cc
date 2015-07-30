@@ -706,12 +706,19 @@ void RnnlmClassparserLayer::Setup(const LayerProto& proto, int npartitions){
   data_.Reshape(vector<int>{windowsize_, 4});
 }
 void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+    float *data_dptr = data_.mutable_cpu_data();
+    //Blob<int> *class_info_ptr = (static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo());
+    int *class_info_ptr_tmp = (static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo())->mutable_cpu_data();
     for(int i = 1; i < records.size(); i++){//The last windowsize_ records in input "windowsize_ + 1" records
         int tmp_class_idx = records[i].word_record().class_index();
-        data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
-        data_[i][1] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
-        data_[i][2] = records[i].word_record().word_index();
-        data_[i][3] = tmp_class_idx;
+        //data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
+        data_dptr[4 * i + 0] = class_info_ptr_tmp[2 * tmp_class_idx + 0];
+        //data_[i][1] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
+        data_dptr[4 * i + 1] = class_info_ptr_tmp[2 * tmp_class_idx + 1];
+        //data_[i][2] = records[i].word_record().word_index();
+        data_dptr[4 * i + 2] = records[i].word_record().word_index();
+        //data_[i][3] = tmp_class_idx;
+        data_dptr[4 * i + 3] = tmp_class_idx;
     }
 }
 
