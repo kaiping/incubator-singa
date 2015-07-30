@@ -502,10 +502,11 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
 
             //Compute the gradient for the weight matrix, the loop is for various timestamps T
             Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)
-            gweightPart1 += dot(gradPart1, src[t]);  //aggregate all updates for this weight matrix together
+            Tensor <cpu, 2> src_t(src[t].dptr, Shape2(1, vdim_));   //(1, 30)
+            gweightPart1 += dot(gradPart1, src_t);  //aggregate all updates for this weight matrix together    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
             Tensor <cpu, 2> gradPart2Slice(grad[t].dptr + classsize_ + startVocabIndex,
                                            Shape2(endVocabIndex - startVocabIndex + 1, 1));
-            gweightPart2Slice += dot(gradPart2Slice, src[t]);
+            gweightPart2Slice += dot(gradPart2Slice, src_t);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
 
             //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
             Tensor <cpu, 1> gradPart1ForSrc(grad[t].dptr, Shape1(classsize_));   //(1,10)
