@@ -658,12 +658,9 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
-  //auto data = Tensor2(&data_);
     Blob<float> *data_dptr = &data_;
     Blob<float> *src_dptr = srclayers_[0]->mutable_data(this);
     float *src_dptr_tmp = src_dptr->mutable_cpu_data();
-    //float *src_dptr = srclayers_[0]->mutable_cpu_data(this);
-  //auto weight = Tensor2(weight_->mutable_data());
     Blob<float> *weight_dptr = weight_->mutable_data();
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     //data[t] = weight[src[t]];
@@ -672,12 +669,14 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
 }
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
-   const auto& src = srclayers_[0]->data(this);
-   auto weight = Tensor2(weight_->mutable_data());
-   auto grad = Tensor2(&grad_);    //(win_size, |V|)
+    Blob<float> *weight_dptr = weight_->mutable_data();
+    Blob<float> *grad_dptr = &grad_;    //(win_size, |V|)
+    Blob<float> *src_dptr = srclayers_[0]->mutable_data(this);
+    float *src_dptr_tmp = src_dptr->mutable_cpu_data();
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
-    weight[src[t]] = grad[t];
+    //weight[src[t]] = grad[t];
+       memcpy(weight_dptr + hdim_ * static_cast<int>(src_dptr_tmp[t]), grad_dptr + hdim_ * t, sizeof(float) * hdim_);
    }
 }
 
