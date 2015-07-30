@@ -738,10 +738,13 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   classinfo_.Reshape(vector<int>{classsize_, 2});    //classsize_ rows and 2 columns
 
   int max_vocabidx_end = 0;
+        int *class_info_ptr = classinfo_.mutable_cpu_data();
   for(int i = 0; i < classsize_; i++){
     classshard_->Next(&class_key, &sample_);
-    classinfo_[i][0] = sample_.class_record().start();
-    classinfo_[i][1] = sample_.class_record().end();
+    //classinfo_[i][0] = sample_.class_record().start();
+      class_info_ptr[2 * i + 0] = sample_.class_record().start();
+    //classinfo_[i][1] = sample_.class_record().end();
+      class_info_ptr[2 * i + 1] = sample_.class_record().end();
     if(sample_.class_record().end() > max_vocabidx_end){
         max_vocabidx_end = sample_.class_record().end();
     }
