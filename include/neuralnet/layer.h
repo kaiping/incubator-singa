@@ -326,7 +326,7 @@ class RnnlmWordinputLayer: public Layer {
   void ComputeGradient(Phase phase) override;
 
 
-  ConnectionType src_neuron_connection(int k) const override {  //TODO to check whether use this or not in this layer?
+  ConnectionType src_neuron_connection(int k) const override {
     // CHECK_LT(k, srclayers_.size());
     return kOneToAll;
   }

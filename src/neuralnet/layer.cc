@@ -581,8 +581,9 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
                           grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
             }
             else {
-                gweight += dot(data[t - 1].T(), grad[t]);   //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1)
-                gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value
+                Tensor <cpu, 2> grad_t_trans(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
+                gweight += dot(data[t - 1].T(), grad_t_trans);   //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
+                gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //TODO here F<op::sigmoid_grad>(data) is a scalar value
             }
         }
     }
@@ -634,7 +635,8 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer;
         for (int t = 0; t < windowsize_; t++) {
-            gweight += dot(src[t].T(), grad[t]);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1)
+            Tensor <cpu, 2> grad_t_trans(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
+            gweight += dot(src[t].T(), grad_t_trans);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
             gsrc[t] = dot(grad[t], weight.T());     //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
     }
