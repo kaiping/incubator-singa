@@ -364,7 +364,7 @@ class RnnlmWordparserLayer: public ParserLayer {
     return vocabsize_;
   }
 
-  ~RnnlmWordparserLayer();
+  //~RnnlmWordparserLayer();
 
  private:
   int windowsize_;
@@ -393,7 +393,7 @@ class RnnlmClassparserLayer: public ParserLayer {
     return vocabsize_;
   }
 
-  ~RnnlmClassparserLayer();
+  //~RnnlmClassparserLayer();
  private:
   int windowsize_;
   int vocabsize_;
