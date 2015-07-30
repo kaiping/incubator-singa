@@ -450,9 +450,15 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
-    auto data = Tensor2(&data_);    //(win_size, 10010)
-    auto grad = Tensor2(&grad_);    //(win_size, 10010)
-    auto src = Tensor2(srclayers_[0]->mutable_data(this));
+    //auto data = Tensor2(&data_);    //(win_size, 10010)
+    Blob<float> *data_dptr = &data_; //(win_size, 10010)
+    float *data_dptr_tmp = data_dptr->mutable_cpu_data();
+    //auto grad = Tensor2(&grad_);    //(win_size, 10010)
+    Blob<float> *grad_ptr = &grad_;  //(win_size, 10010)
+    float *grad_ptr_tmp = grad_ptr->mutable_cpu_data();
+    //auto src = Tensor2(srclayers_[0]->mutable_data(this));
+    Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
+    float *src_ptr_tmp = src_ptr->mutable_cpu_data();
     const float * label = srclayers_[1]->data(this).cpu_data();   //offer the ground truth info
 
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
@@ -485,33 +491,41 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             //Compute the gradient for the current layer
             //To check later: can compute values for one t and then back propagate the error/gradient?
             for (int i = 0; i < classsize_; i++) {  //TODO kaiping change or not?
-                grad[t][i] = 0 - data[t][i];
+                //grad[t][i] = 0 - data[t][i];
+                grad_ptr_tmp[t * hdim_ + i] = 0 - data_dptr_tmp[t * hdim_ + i];
+
             }
-            grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
+            //grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
+            grad_ptr_tmp[t * hdim_ + classIndex] = 1 - data_dptr_tmp[t * hdim_ + classIndex];   //Compute ground truth for the class
 
             for (int j = classsize_; j < classsize_ + vocabsize_; j++) {
                 if (j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
-                    grad[t][j] = 0 - data[t][j];
+                    //grad[t][j] = 0 - data[t][j];
+                    grad_ptr_tmp[t * hdim_ + j] = 0 - data_dptr_tmp[t * hdim_ + j];
                 }
                 else {
-                    grad[t][j] = 0;
+                    //grad[t][j] = 0;
+                    grad_ptr_tmp[t * hdim_ + j] = 0;
                 }
-                grad[t][classsize_ + wordIndex] =
-                        1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
+                //grad[t][classsize_ + wordIndex] = 1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
+                grad_ptr_tmp[t * hdim_ + classsize_ + wordIndex] = 1 - data_dptr_tmp[t * hdim_ + classsize_ + wordIndex];   //Compute ground truth for the word
             }
 
             //Compute the gradient for the weight matrix, the loop is for various timestamps T
-            Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)
-            Tensor <cpu, 2> src_t(src[t].dptr, Shape2(1, vdim_));   //(1, 30)
+            //Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)
+            Tensor <cpu, 2> gradPart1(grad_ptr_tmp + t * hdim_, Shape2(classsize_, 1));   //(10,1)
+            //Tensor <cpu, 2> src_t(src[t].dptr, Shape2(1, vdim_));   //(1, 30)
+            Tensor <cpu, 2> src_t(src_ptr_tmp + t * hdim_, Shape2(1, vdim_));   //(1, 30)
             gweightPart1 += dot(gradPart1, src_t);  //aggregate all updates for this weight matrix together    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
-            Tensor <cpu, 2> gradPart2Slice(grad[t].dptr + classsize_ + startVocabIndex,
-                                           Shape2(endVocabIndex - startVocabIndex + 1, 1));
+            //Tensor <cpu, 2> gradPart2Slice(grad[t].dptr + classsize_ + startVocabIndex, Shape2(endVocabIndex - startVocabIndex + 1, 1));
+            Tensor <cpu, 2> gradPart2Slice(grad_ptr_tmp + t * hdim_ + classsize_ + startVocabIndex, Shape2(endVocabIndex - startVocabIndex + 1, 1));
             gweightPart2Slice += dot(gradPart2Slice, src_t);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
 
             //Compute the gradient for the src layer, the loop is for various timestamps T; actually another part of gsrc will be added in RnnSigmoidLayer
-            Tensor <cpu, 1> gradPart1ForSrc(grad[t].dptr, Shape1(classsize_));   //(1,10)
-            Tensor <cpu, 1> gradPart2SliceForSrc(grad[t].dptr + classsize_ + startVocabIndex,
-                                                 Shape1(endVocabIndex - startVocabIndex + 1));  //(1,150)
+            //Tensor <cpu, 1> gradPart1ForSrc(grad[t].dptr, Shape1(classsize_));   //(1,10)
+            Tensor <cpu, 1> gradPart1ForSrc(grad_ptr_tmp + t * hdim_, Shape1(classsize_));   //(1,10)
+            //Tensor <cpu, 1> gradPart2SliceForSrc(grad[t].dptr + classsize_ + startVocabIndex, Shape1(endVocabIndex - startVocabIndex + 1));  //(1,150)
+            Tensor <cpu, 1> gradPart2SliceForSrc(grad_ptr_tmp + t * hdim_ + classsize_ + startVocabIndex, Shape1(endVocabIndex - startVocabIndex + 1));  //(1,150)
             //gsrc[t] = dot(gradPart1ForSrc, weightPart1) + dot(gradPart2SliceForSrc, weightPart2Slice);
             gsrc[t] = dot(gradPart1ForSrc, weightPart1);    //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
             gsrc[t] += dot(gradPart2SliceForSrc, weightPart2Slice); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
