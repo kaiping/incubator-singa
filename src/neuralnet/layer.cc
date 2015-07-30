@@ -658,25 +658,25 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
-    Blob<float> *data_dptr = &data_;
-    Blob<float> *src_dptr = srclayers_[0]->mutable_data(this);
-    float *src_dptr_tmp = src_dptr->mutable_cpu_data();
-    Blob<float> *weight_dptr = weight_->mutable_data();
+    Blob<float> *data_ptr = &data_;
+    Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
+    float *src_ptr_tmp = src_ptr->mutable_cpu_data();
+    Blob<float> *weight_ptr = weight_->mutable_data();
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     //data[t] = weight[src[t]];
-      memcpy(data_dptr + hdim_ * t, weight_dptr + hdim_ * static_cast<int>(src_dptr_tmp[t]), sizeof(float) * hdim_);
+      memcpy(data_ptr + hdim_ * t, weight_ptr + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
 }
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
-    Blob<float> *weight_dptr = weight_->mutable_data();
-    Blob<float> *grad_dptr = &grad_;    //(win_size, |V|)
-    Blob<float> *src_dptr = srclayers_[0]->mutable_data(this);
-    float *src_dptr_tmp = src_dptr->mutable_cpu_data();
+    Blob<float> *weight_ptr = weight_->mutable_data();
+    Blob<float> *grad_ptr = &grad_;    //(win_size, |V|)
+    Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
+    float *src_ptr_tmp = src_ptr->mutable_cpu_data();
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
     //weight[src[t]] = grad[t];
-       memcpy(weight_dptr + hdim_ * static_cast<int>(src_dptr_tmp[t]), grad_dptr + hdim_ * t, sizeof(float) * hdim_);
+       memcpy(weight_ptr + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr + hdim_ * t, sizeof(float) * hdim_);
    }
 }
 
@@ -689,11 +689,10 @@ void RnnlmWordparserLayer::Setup(const LayerProto& proto, int npartitions){
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
 void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
-    Blob<float> *data_dptr = &data_;
-    float *data_dptr_tmp = data_dptr->mutable_cpu_data();
+    float *data_dptr = data_.mutable_cpu_data();
     for(int i = 0; i < records.size() - 1; i++){//The first windowsize_ records in input "windowsize_ + 1" records
         //data_[i] = records[i].word_record().word_index();
-        data_dptr_tmp[i] = records[i].word_record().word_index();
+        data_dptr[i] = records[i].word_record().word_index();
     }
 }
 
