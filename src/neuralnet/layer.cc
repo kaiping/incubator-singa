@@ -697,13 +697,15 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
     Blob<float> *weight_ptr = weight_->mutable_data();
+    float *weight_ptr_tmp = weight_ptr->mutable_cpu_data();
     Blob<float> *grad_ptr = &grad_;    //(win_size, |V|)
+    float *grad_ptr_tmp = grad_ptr->mutable_cpu_data();
     Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
     float *src_ptr_tmp = src_ptr->mutable_cpu_data();
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
     //weight[src[t]] = grad[t];
-       memcpy(weight_ptr + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr + hdim_ * t, sizeof(float) * hdim_);
+       memcpy(weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr_tmp + hdim_ * t, sizeof(float) * hdim_);
    }
 }
 
