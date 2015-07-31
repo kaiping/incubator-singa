@@ -6,7 +6,6 @@
 #include "neuralnet/layer.h"
 #include "utils/singleton.h"
 #include "utils/factory.h"
-#include "../../include/neuralnet/layer.h"
 
 using namespace mshadow;
 using namespace mshadow::expr;
