@@ -673,6 +673,7 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
   const auto& src=srclayers_[0]->data(this);
   windowsize_=src.shape()[0];
   vdim_=src.count()/windowsize_; //dimension of input, i.e., 1
+    CHECK_EQ(vdim_, 1);
   hdim_=proto.rnnlmwordinput_conf().word_length(); // i.e., |V|
   data_.Reshape(vector<int>{windowsize_, hdim_});
   grad_.ReshapeLike(data_);
