@@ -339,6 +339,7 @@ void BPWorker::Forward(
           Collect(p, step);
         }
       }
+      LOG(ERROR) << layer->name();
       layer->ComputeFeature(phase, perf);
       if (layer->is_bridgesrclayer())  // send data to other workers
         SendBlobs(true, false, static_cast<BridgeLayer*>(layer), net);
