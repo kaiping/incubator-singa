@@ -6,6 +6,7 @@
 #include "neuralnet/layer.h"
 #include "utils/singleton.h"
 #include "utils/factory.h"
+#include "../../include/neuralnet/layer.h"
 
 using namespace mshadow;
 using namespace mshadow::expr;
@@ -691,6 +692,7 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
       //Check whether src_ptr_tmp[t] is in the range [0, vocabsize_ - 1]
       CHECK_GE(src_ptr_tmp[t],0);
       CHECK_LT(src_ptr_tmp[t], windowsize_);
+      LOG(ERROR) << "This is wordinput layer";
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
 }
@@ -718,11 +720,13 @@ void RnnlmWordparserLayer::Setup(const LayerProto& proto, int npartitions){
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
 void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+    LOG(ERROR) << "This is word parser layer";
     float *data_dptr = data_.mutable_cpu_data();
     for(int i = 0; i < records.size() - 1; i++){//The first windowsize_ records in input "windowsize_ + 1" records
         //data_[i] = records[i].word_record().word_index();
         data_dptr[i] = records[i].word_record().word_index();
     }
+    LOG(ERROR) << "This is word parser layer";
 }
 
 /*********** 6-Implementation for RnnlmClassparserLayer **********/
@@ -749,6 +753,7 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& reco
         //data_[i][3] = tmp_class_idx;
         data_dptr[4 * i + 3] = tmp_class_idx;
     }
+    LOG(ERROR) << "This is class parser layer";
 }
 
 /*********** 7-Implementation for RnnlmDataLayer **********/
@@ -764,6 +769,7 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   windowsize_ = proto.rnnlmdata_conf().window_size();
   records_.resize(windowsize_ + 1);
   classsize_ = classshard_->Count(); //First read through class_shard and obtain values for class_size and vocab_size
+        LOG(ERROR) << "class size: " << classsize_;
   classinfo_.Reshape(vector<int>{classsize_, 2});    //classsize_ rows and 2 columns
 
   int max_vocabidx_end = 0;
@@ -779,6 +785,7 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
     }
   }
   vocabsize_ = max_vocabidx_end + 1;
+        LOG(ERROR) << "vocabulary size: " << vocabsize_;
   wordshard_->Next(&word_key, &records_[windowsize_]);    //Then read the 1st record in word_shard and assign it to records_[windowsize_] for convenience & consistency in ComputeFeature()
 }
 
@@ -798,6 +805,7 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 	}
 	if (flag == true) break;
 }
+    LOG(ERROR) << "This is data layer";
 }
 
 

@@ -432,7 +432,7 @@ class RnnlmDataLayer: public DataLayer{
   int classsize_;
   int vocabsize_;
   Blob<int> classinfo_; //For each class index, info: start vocab_index, end vocab_index
-  vector<Record> classrecords_; //used for processing class records; The member "records_" in DataLayer is specified for use of WordRecords here
+  //vector<Record> classrecords_; //used for processing class records; The member "records_" in DataLayer is specified for use of WordRecords here
 };
 
 /********** end line for RNNLM example **********/
