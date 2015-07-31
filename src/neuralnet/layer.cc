@@ -561,7 +561,6 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
     //First compute the s(t-1) * W part, then add the sigmoid part of input
     for(int t = 0; t < windowsize_; t++){   //Skip the 1st component
         if(t == 0){
-            //memset(data[t].dptr, 0, sizeof(float) * hdim_);   //Actually no need for this initialization
             data[t] = F<op::sigmoid>(src[t]);
         }
         else{
@@ -627,13 +626,10 @@ void RnnlmInnerproductLayer::Setup(const LayerProto& proto, int npartitions) {
 }
 
 void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
-  auto data = Tensor2(&data_);
-  auto src = Tensor2(srclayers_[0]->mutable_data(this));
-  auto weight = Tensor2(weight_->mutable_data());
-
-  for(int t = 0; t < windowsize_; t++){
-    data[t] = dot(src[t], weight);  //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
-  }
+  auto data = Tensor2(&data_);  //(window_size, 30)
+  auto src = Tensor2(srclayers_[0]->mutable_data(this));    //(window_size, |V|)
+  auto weight = Tensor2(weight_->mutable_data());           //(|V|, 30)
+    data = dot(src, weight);
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
@@ -655,8 +651,9 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
             Tensor <cpu, 2> src_t_trans(src_ptr_tmp + t * hdim_, Shape2(vdim_, 1));   //(|V|,1)
             Tensor <cpu, 2> grad_t(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
             gweight += dot(src_t_trans, grad_t);    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
-            gsrc[t] = dot(grad[t], weight.T());     //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
+            //gsrc[t] = dot(grad[t], weight.T());     //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
+        gsrc = dot(grad, weight.T());
     }
 }
 
@@ -691,6 +688,9 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
     float *weight_ptr_tmp = weight_ptr->mutable_cpu_data();
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     //data[t] = weight[src[t]];
+      //Check whether src_ptr_tmp[t] is in the range [0, vocabsize_ - 1]
+      CHECK_GE(src_ptr_tmp[t],0);
+      CHECK_LT(src_ptr_tmp[t], windowsize_);
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
 }
@@ -784,15 +784,6 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
 
 
 void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
-  /*
-  records_[0] = records_[windowsize_];
-  for(int i = 1; i < records_.size(); i++){  //size of records_ is windowsize_ + 1; range: [1, windowsize_]
-    string key;
-    if(!wordshard_->Next(&key, &records_[i])){   // when remaining # of words is fewer than windowsize_
-      wordshard_->SeekToFirst();
-      CHECK(wordshard_->Next(&key, &records_[i]));
-    }
-  }*/   //When not throw the ending words ( < window_size)
   CHECK(records_.size() <= wordshard_->Count());
   records_[0] = records_[windowsize_];
   while (true) {
