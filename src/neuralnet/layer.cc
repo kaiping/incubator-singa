@@ -684,12 +684,14 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
     Blob<float> *data_ptr = &data_;
+    float *data_ptr_tmp = data_ptr->mutable_cpu_data();
     Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
     float *src_ptr_tmp = src_ptr->mutable_cpu_data();
     Blob<float> *weight_ptr = weight_->mutable_data();
+    float *weight_ptr_tmp = weight_ptr->mutable_cpu_data();
   for(int t = 0; t < windowsize_; t++){ //Then src[t] is the t'th input word index
     //data[t] = weight[src[t]];
-      memcpy(data_ptr + hdim_ * t, weight_ptr + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
+      memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
 }
 
