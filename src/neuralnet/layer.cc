@@ -6,6 +6,7 @@
 #include "neuralnet/layer.h"
 #include "utils/singleton.h"
 #include "utils/factory.h"
+#include "../../include/neuralnet/layer.h"
 
 using namespace mshadow;
 using namespace mshadow::expr;
@@ -618,7 +619,7 @@ void RnnlmInnerproductLayer::Setup(const LayerProto& proto, int npartitions) {
   const auto& src=srclayers_[0]->data(this);
   windowsize_=src.shape()[0];
   vdim_=src.count()/windowsize_; //dimension of input, i.e., |V|
-  hdim_=proto.innerproduct_conf().num_output(); //TODO add window_size() info in model.proto & model.conf, dimension of output, e.g, 30
+  hdim_=proto.rnnlminnerproduct_conf().num_output();
   data_.Reshape(vector<int>{windowsize_, hdim_});   //(win_size,30)
   grad_.ReshapeLike(data_);
   Factory<Param>* factory=Singleton<Factory<Param>>::Instance();
