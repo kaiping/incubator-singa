@@ -794,7 +794,7 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
 
 void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
   CHECK(records_.size() <= wordshard_->Count());
-  records_[0] = records_[windowsize_]; 
+  records_[0] = records_[windowsize_];
     LOG(ERROR) << "Training data shard info: word: " << records_[0].word_record().word() << " wordIndex: "
     << records_[0].word_record().word_index() << " classIndex: " << records_[0].word_record().class_index();
   while (true) {
