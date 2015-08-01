@@ -448,10 +448,11 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         FreeSpace(p1);
         FreeSpace(p2);
     }
+    //perf->reset();
+    perf->Add("sum value", sum_);
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
-    LOG(ERROR) << "HELLO WORLD";
     //auto data = Tensor2(&data_);    //(win_size, 10010)
     Blob<float> *data_dptr = &data_; //(win_size, 10010)
     float *data_dptr_tmp = data_dptr->mutable_cpu_data();
@@ -517,7 +518,7 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             //Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)
             Tensor <cpu, 2> gradPart1(grad_ptr_tmp + t * hdim_, Shape2(classsize_, 1));   //(10,1)
             //Tensor <cpu, 2> src_t(src[t].dptr, Shape2(1, vdim_));   //(1, 30)
-            Tensor <cpu, 2> src_t(src_ptr_tmp + t * hdim_, Shape2(1, vdim_));   //(1, 30)
+            Tensor <cpu, 2> src_t(src_ptr_tmp + t * vdim_, Shape2(1, vdim_));   //(1, 30)
             gweightPart1 += dot(gradPart1, src_t);  //aggregate all updates for this weight matrix together    //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
             //Tensor <cpu, 2> gradPart2Slice(grad[t].dptr + classsize_ + startVocabIndex, Shape2(endVocabIndex - startVocabIndex + 1, 1));
             Tensor <cpu, 2> gradPart2Slice(grad_ptr_tmp + t * hdim_ + classsize_ + startVocabIndex, Shape2(endVocabIndex - startVocabIndex + 1, 1));
