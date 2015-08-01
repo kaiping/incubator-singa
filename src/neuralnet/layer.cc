@@ -444,12 +444,13 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
 
         //For each word respectively, add a term in the sum_
         sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
-        LOG(ERROR) << "Sum value: " << sum_;
+        //LOG(ERROR) << "SUM: " << sum_;
         FreeSpace(p1);
         FreeSpace(p2);
     }
     //perf->reset();
     perf->Add("sum value", sum_);
+    LOG(ERROR) << "This is computation layer";
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
@@ -501,7 +502,7 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             //grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
             grad_ptr_tmp[t * hdim_ + classIndex] = 1 - data_dptr_tmp[t * hdim_ + classIndex];   //Compute ground truth for the class
 
-            for (int j = classsize_; j < classsize_ + vocabsize_; j++) {
+            for (int j = classsize_; j < classsize_ + vocabsize_; j++) {    //TODO kaiping: to change later, first initialize to 0 and then loop in [startVocabIndex, endVocabIndex]
                 if (j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
                     //grad[t][j] = 0 - data[t][j];
                     grad_ptr_tmp[t * hdim_ + j] = 0 - data_dptr_tmp[t * hdim_ + j];
@@ -572,6 +573,7 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
             data[t] += F<op::sigmoid>(src[t]);
         }
     }
+    LOG(ERROR) << "This is sigmoid layer";
 }
 
 void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
@@ -581,9 +583,6 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
     auto gweight = Tensor2(weight_->mutable_grad());    //the gradient for the parameter: weight matrix
     if(srclayers_[0]->mutable_grad(this) != nullptr) {
         auto gsrc = Tensor2(srclayers_[0]->mutable_grad(this)); //(10,30), i.e., (window_size, 30)
-
-
-
         memset(gweight.dptr, 0, sizeof(float) * gweight.shape[0] *
                                                 gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
         //1-Update the gradient for the current layer, add a new term
@@ -633,6 +632,7 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto src = Tensor2(srclayers_[0]->mutable_data(this));    //(window_size, |V|)
   auto weight = Tensor2(weight_->mutable_data());           //(|V|, 30)
     data = dot(src, weight);
+    LOG(ERROR) << "This is inner product layer";
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
@@ -722,7 +722,7 @@ void RnnlmWordparserLayer::Setup(const LayerProto& proto, int npartitions){
   data_.Reshape(vector<int>{windowsize_});  //Can use 1-dimension
 }
 void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
-    LOG(ERROR) << "This is word parser layer";
+    //LOG(ERROR) << "This is word parser layer";
     float *data_dptr = data_.mutable_cpu_data();
     for(int i = 0; i < records.size() - 1; i++){//The first windowsize_ records in input "windowsize_ + 1" records
         //data_[i] = records[i].word_record().word_index();
@@ -754,8 +754,8 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& reco
         data_dptr[4 * (i - 1) + 2] = records[i].word_record().word_index();
         //data_[i][3] = tmp_class_idx;
         data_dptr[4 * (i - 1) + 3] = tmp_class_idx;
-        LOG(ERROR) << "Test class parser information: (start, end, word_idx, end_idx): ";
-        LOG(ERROR) << "( " << data_dptr[4 * (i - 1) + 0] << " , " << data_dptr[4 * (i - 1) + 1] << " , " << data_dptr[4 * (i - 1) + 2] << " , " << data_dptr[4 * (i - 1) + 3] << " )";
+        //LOG(ERROR) << "Test class parser information: (start, end, word_idx, end_idx): ";
+        //LOG(ERROR) << "( " << data_dptr[4 * (i - 1) + 0] << " , " << data_dptr[4 * (i - 1) + 1] << " , " << data_dptr[4 * (i - 1) + 2] << " , " << data_dptr[4 * (i - 1) + 3] << " )";
     }
     LOG(ERROR) << "This is class parser layer";
 }
