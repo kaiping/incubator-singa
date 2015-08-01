@@ -811,7 +811,7 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 	}
 	if (flag == true) break;
 }
-    LOG(ERROR) << "This is data layer";
+    LOG(ERROR) << "This is data layer"; 
 }
 
 
