@@ -745,13 +745,15 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& reco
     for(int i = 1; i < records.size(); i++){//The last windowsize_ records in input "windowsize_ + 1" records
         int tmp_class_idx = records[i].word_record().class_index();
         //data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
-        data_dptr[4 * i + 0] = class_info_ptr_tmp[2 * tmp_class_idx + 0];
+        data_dptr[4 * (i - 1) + 0] = class_info_ptr_tmp[2 * tmp_class_idx + 0];
         //data_[i][1] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
-        data_dptr[4 * i + 1] = class_info_ptr_tmp[2 * tmp_class_idx + 1];
+        data_dptr[4 * (i - 1) + 1] = class_info_ptr_tmp[2 * tmp_class_idx + 1];
         //data_[i][2] = records[i].word_record().word_index();
-        data_dptr[4 * i + 2] = records[i].word_record().word_index();
+        data_dptr[4 * (i - 1) + 2] = records[i].word_record().word_index();
         //data_[i][3] = tmp_class_idx;
-        data_dptr[4 * i + 3] = tmp_class_idx;
+        data_dptr[4 * (i - 1) + 3] = tmp_class_idx;
+        LOG(ERROR) << "Test class parser information: (start, end, word_idx, end_idx): ";
+        LOG(ERROR) << "( " << data_dptr[4 * (i - 1) + 0] << " , " << data_dptr[4 * (i - 1) + 1] << " , " << data_dptr[4 * (i - 1) + 2] << " , " << data_dptr[4 * (i - 1) + 3] << " )";
     }
     LOG(ERROR) << "This is class parser layer";
 }
@@ -793,6 +795,8 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
 void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
   CHECK(records_.size() <= wordshard_->Count());
   records_[0] = records_[windowsize_];
+    LOG(ERROR) << "Training data shard info: word: " << records_[0].word_record().word() << " wordIndex: "
+    << records_[0].word_record().word_index() << " classIndex: " << records_[0].word_record().class_index();
   while (true) {
 	bool flag = true;
 	for (int i = 1; i < records_.size(); i++) { //size of records_ is windowsize_ + 1; range: [1, windowsize_]
@@ -802,6 +806,8 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 			flag = false;
 			break;
 		}
+        LOG(ERROR) << "Training data shard info: word: " << records_[i].word_record().word() << " wordIndex: "
+        << records_[i].word_record().word_index() << " classIndex: " << records_[i].word_record().class_index();
 	}
 	if (flag == true) break;
 }
