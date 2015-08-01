@@ -444,13 +444,14 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
 
         //For each word respectively, add a term in the sum_
         sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
-
+        LOG(ERROR) << "Sum value: " << sum_;
         FreeSpace(p1);
         FreeSpace(p2);
     }
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
+    LOG(ERROR) << "HELLO WORLD";
     //auto data = Tensor2(&data_);    //(win_size, 10010)
     Blob<float> *data_dptr = &data_; //(win_size, 10010)
     float *data_dptr_tmp = data_dptr->mutable_cpu_data();
@@ -692,9 +693,9 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
       //Check whether src_ptr_tmp[t] is in the range [0, vocabsize_ - 1]
       CHECK_GE(src_ptr_tmp[t],0);
       CHECK_LT(src_ptr_tmp[t], vocabsize_);
-      LOG(ERROR) << "This is wordinput layer";
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
+    LOG(ERROR) << "This is wordinput layer";
 }
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
