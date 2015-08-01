@@ -3,7 +3,7 @@ filename = rnnlm-0.4b.tgz
 # note: filelink for rnnlm-0.4b may change    
 filelink = https://f25ea9ccb7d3346ce6891573d543960492b92c30.googledrive.com/host/0ByxdPXuxLPS5RFM5dVNvWVhTd0U
 dirname = $(patsubst %.tgz,%, $(filename))
-numclass = 3
+numclass = 10
 dirshards = rnnlm_word_shard_train rnnlm_word_shard_test rnnlm_word_shard_valid rnnlm_class_shard rnnlm_vocab_shard
 
 
