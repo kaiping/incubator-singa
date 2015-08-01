@@ -691,7 +691,7 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
     //data[t] = weight[src[t]];
       //Check whether src_ptr_tmp[t] is in the range [0, vocabsize_ - 1]
       CHECK_GE(src_ptr_tmp[t],0);
-      CHECK_LT(src_ptr_tmp[t], windowsize_);
+      CHECK_LT(src_ptr_tmp[t], vocabsize_);
       LOG(ERROR) << "This is wordinput layer";
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
@@ -811,7 +811,7 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 	}
 	if (flag == true) break;
 }
-    LOG(ERROR) << "This is data layer"; 
+    LOG(ERROR) << "This is data layer";
 }
 
 
