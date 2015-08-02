@@ -394,7 +394,7 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
     Factory<Param>* factory=Singleton<Factory<Param>>::Instance();
     weight_ = factory->Create("Param");
     weight_->Setup(proto.param(0), vector<int>{hdim_, vdim_});  // (10010, 30)Need to transpose the original weight matrix for the slicing part
-    sum_ = 0.0; // Initialize the accuracy value; used to store the sum of log(pi), i.e., sum of log(p1 * p2)
+    //sum_ = 0.0; // Initialize the accuracy value; used to store the sum of log(pi), i.e., sum of log(p1 * p2)
 }
 
 void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
@@ -420,6 +420,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         y2 = dot(sigmoidData[t], weightPart2Slice.T()); // Directly modify the value of "data" - TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
     }
 
+    float sum = 0.0;
     //Compute p1(t), p2(t) using the computed value of y1 and y2 and then copy to the "data" of ComputationLayer; Additionally compute the sum_ value
     for(int t = 0; t < windowsize_; t++){
         int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
@@ -444,13 +445,13 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
 
         //For each word respectively, add a term in the sum_
         //sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
-        sum_ += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
-        LOG(ERROR) << "SUM: " << sum_;
+        sum += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
+        LOG(ERROR) << "SUM: " << sum;
         FreeSpace(p1);
         FreeSpace(p2);
     }
-    //perf->reset();
-    perf->Add("sum value", sum_);
+    perf->Reset();
+    perf->Add("sum value", sum);
     LOG(ERROR) << "----------This is computation layer----------";
     LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
     LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
