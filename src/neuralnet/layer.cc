@@ -443,14 +443,17 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         memcpy(data[t].dptr + classsize_ + startVocabIndex, p2.dptr, sizeof(float) * (endVocabIndex - startVocabIndex + 1));
 
         //For each word respectively, add a term in the sum_
-        sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
-        //LOG(ERROR) << "SUM: " << sum_;
+        //sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
+        sum_ += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
+        LOG(ERROR) << "SUM: " << sum_;
         FreeSpace(p1);
         FreeSpace(p2);
     }
     //perf->reset();
     perf->Add("sum value", sum_);
-    LOG(ERROR) << "This is computation layer";
+    LOG(ERROR) << "----------This is computation layer----------";
+    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
@@ -535,6 +538,11 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             gsrc[t] += dot(gradPart2SliceForSrc, weightPart2Slice); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
     }
+    LOG(ERROR) << "----------This is computation layer----------";
+    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -573,7 +581,9 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
             data[t] += F<op::sigmoid>(src[t]);
         }
     }
-    LOG(ERROR) << "This is sigmoid layer";
+    LOG(ERROR) << "----------This is sigmoid layer----------";
+    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
@@ -604,6 +614,11 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
             }
         }
     }
+    LOG(ERROR) << "----------This is sigmoid layer----------";
+    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -632,7 +647,9 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto src = Tensor2(srclayers_[0]->mutable_data(this));    //(window_size, |V|)
   auto weight = Tensor2(weight_->mutable_data());           //(|V|, 30)
     data = dot(src, weight);
-    LOG(ERROR) << "This is inner product layer";
+    LOG(ERROR) << "----------This is inner product layer----------";
+    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
@@ -658,6 +675,11 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
         }
         gsrc = dot(grad, weight.T());
     }
+    LOG(ERROR) << "----------This is inner product layer----------";
+    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -696,21 +718,28 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
       CHECK_LT(src_ptr_tmp[t], vocabsize_);
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
-    LOG(ERROR) << "This is wordinput layer";
+    LOG(ERROR) << "----------This is wordinput layer----------";
+    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
-    Blob<float> *weight_ptr = weight_->mutable_data();
-    float *weight_ptr_tmp = weight_ptr->mutable_cpu_data();
+    Blob<float> *gweight_ptr = weight_->mutable_grad();    //the gradient for the parameter: weight matrix
+    float *gweight_ptr_tmp = gweight_ptr->mutable_cpu_data();
     Blob<float> *grad_ptr = &grad_;    //(win_size, |V|)
     float *grad_ptr_tmp = grad_ptr->mutable_cpu_data();
     Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
     float *src_ptr_tmp = src_ptr->mutable_cpu_data();
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
-    //weight[src[t]] = grad[t];
-       memcpy(weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr_tmp + hdim_ * t, sizeof(float) * hdim_);
+    //gweight[src[t]] = grad[t];
+       memcpy(gweight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr_tmp + hdim_ * t, sizeof(float) * hdim_);
    }
+    LOG(ERROR) << "----------This is wordinput layer----------";
+    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 /*********** 5-Implementation for RnnlmWordparserLayer **********/
@@ -797,8 +826,8 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
 void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
   CHECK(records_.size() <= wordshard_->Count());
   records_[0] = records_[windowsize_];
-    LOG(ERROR) << "Training data shard info: word: " << records_[0].word_record().word() << " wordIndex: "
-    << records_[0].word_record().word_index() << " classIndex: " << records_[0].word_record().class_index();
+    //LOG(ERROR) << "Training data shard info: word: " << records_[0].word_record().word() << " wordIndex: "
+    //<< records_[0].word_record().word_index() << " classIndex: " << records_[0].word_record().class_index();
   while (true) {
 	bool flag = true;
 	for (int i = 1; i < records_.size(); i++) { //size of records_ is windowsize_ + 1; range: [1, windowsize_]
@@ -808,8 +837,8 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 			flag = false;
 			break;
 		}
-        LOG(ERROR) << "Training data shard info: word: " << records_[i].word_record().word() << " wordIndex: "
-        << records_[i].word_record().word_index() << " classIndex: " << records_[i].word_record().class_index();
+        //LOG(ERROR) << "Training data shard info: word: " << records_[i].word_record().word() << " wordIndex: "
+        //<< records_[i].word_record().word_index() << " classIndex: " << records_[i].word_record().class_index();
 	}
 	if (flag == true) break;
 }
