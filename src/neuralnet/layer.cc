@@ -421,6 +421,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     }
 
     float sum = 0.0;
+    float ppl = 0.0;
     //Compute p1(t), p2(t) using the computed value of y1 and y2 and then copy to the "data" of ComputationLayer; Additionally compute the sum_ value
     for(int t = 0; t < windowsize_; t++){
         int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
@@ -450,8 +451,10 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         FreeSpace(p1);
         FreeSpace(p2);
     }
+    ppl = exp(-(1.0 / windowsize_) * sum);
     perf->Reset();
     perf->Add("sum value", sum);
+    perf->Add("ppl value", ppl);
     LOG(ERROR) << "----------This is computation layer----------";
     LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
     LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
