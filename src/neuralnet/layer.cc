@@ -394,7 +394,6 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
     Factory<Param>* factory=Singleton<Factory<Param>>::Instance();
     weight_ = factory->Create("Param");
     weight_->Setup(proto.param(0), vector<int>{hdim_, vdim_});  // (10010, 30)Need to transpose the original weight matrix for the slicing part
-    //sum_ = 0.0; // Initialize the accuracy value; used to store the sum of log(pi), i.e., sum of log(p1 * p2)
 }
 
 void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
@@ -444,8 +443,19 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         memcpy(data[t].dptr, p1.dptr, sizeof(float) * classsize_);
         memcpy(data[t].dptr + classsize_ + startVocabIndex, p2.dptr, sizeof(float) * (endVocabIndex - startVocabIndex + 1));
 
+        LOG(ERROR) << "p1: " << p1[classIndex];
+        LOG(ERROR) << "p2: " << p2[wordIndex - startVocabIndex];
+        LOG(ERROR) << "word index: " << wordIndex;
+        LOG(ERROR) << "start vocab index: " << startVocabIndex;
+        LOG(ERROR) << "end vocab index: " << endVocabIndex;
+        LOG(ERROR) << "class index: " << classIndex;
+        LOG(ERROR) << "Detailed information: ";
+        for(int i = 0; i < endVocabIndex - startVocabIndex + 1; i++){
+            LOG(ERROR) << p2[i];
+        }
+        LOG(ERROR) << "Actual value: " << p1[classIndex] * p2[wordIndex - startVocabIndex];
+        LOG(ERROR) << "Mnimum value: " << FLT_MIN;
         //For each word respectively, add a term in the sum_
-        //sum_ += log(p1[classIndex] * p2[wordIndex - startVocabIndex]);
         sum += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
         LOG(ERROR) << "SUM: " << sum;
         FreeSpace(p1);
@@ -454,7 +464,6 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     LOG(ERROR) << "SUM: " << sum;
     ppl = exp(-(1.0 / windowsize_) * sum); //per word
     LOG(ERROR) << "PPL: " << ppl;
-    //perf->Reset();
     perf->Add("sum value", sum);
     perf->Add("ppl value", ppl);
     LOG(ERROR) << perf->ToLogString();

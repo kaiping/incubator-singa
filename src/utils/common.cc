@@ -185,7 +185,7 @@ const string Metric::ToLogString() const {
   size_t k = 0;
   for(auto e : entry_) {
     ret += e.first + " : " ;
-    LOG(ERROR) << e.first << e.second.second << ", " << e.second.first;
+    //LOG(ERROR) << e.first << e.second.second << ", " << e.second.first;
     ret += std::to_string(e.second.second / e.second.first);
     if(++k < entry_.size())
       ret +=  ", ";
