@@ -63,7 +63,8 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     int wordIdxCnt = 0;
     for (auto& it : wordFreqSortedVec) {
         // index words
-        wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
+        //wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
+        wordIdxMap[it.first] = static_cast<int>(wordIdxCnt);
         // generate classes
         tmpWordFreqSum += it.second;
         wordClassIdxMap[it.first] = classIdxCnt;
@@ -160,7 +161,7 @@ void create_shard(const char *input, int nclass) {
         wordRecord->set_class_index(wordClassIdxMap[word]);
         snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[word]);
         wordShard.Insert(std::string(key), record);
-        cnt++;
+        //cnt++;
     }
     //LOG(ERROR) << wordShard.Count();
     //LOG(ERROR) << "Count: " << cnt;
