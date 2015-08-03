@@ -451,16 +451,20 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         FreeSpace(p1);
         FreeSpace(p2);
     }
-    ppl = exp(-(1.0 / windowsize_) * sum);
-    perf->Reset();
+    LOG(ERROR) << "SUM: " << sum;
+    ppl = exp(-(1.0 / windowsize_) * sum); //per word
+    LOG(ERROR) << "PPL: " << ppl;
+    //perf->Reset();
     perf->Add("sum value", sum);
     perf->Add("ppl value", ppl);
+    LOG(ERROR) << perf->ToLogString();
     LOG(ERROR) << "----------This is computation layer----------";
     LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
     LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
+    LOG(ERROR) << "***********************************************";
     //auto data = Tensor2(&data_);    //(win_size, 10010)
     Blob<float> *data_dptr = &data_; //(win_size, 10010)
     float *data_dptr_tmp = data_dptr->mutable_cpu_data();
@@ -734,6 +738,9 @@ void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
     float *grad_ptr_tmp = grad_ptr->mutable_cpu_data();
     Blob<float> *src_ptr = srclayers_[0]->mutable_data(this);
     float *src_ptr_tmp = src_ptr->mutable_cpu_data();
+
+    memset(gweight_ptr_tmp, 0, sizeof(float) * vocabsize_ * hdim_);   //Need initialization before aggregate updates in all timestamps
+
    //Update the weight matrix here
    for(int t = 0; t < windowsize_; t++){
     //gweight[src[t]] = grad[t];
