@@ -150,6 +150,7 @@ void create_shard(const char *input, int nclass) {
     const int kMaxKeyLength = 10;
     char key[kMaxKeyLength];
     std::string word;
+    //int cnt = 0;
     while (in >> word) {
         // TODO (kaiping): do not forget here if modify tokenize logic
         // TODO (kaiping): how to handle unknown word, just skip for now
@@ -159,8 +160,12 @@ void create_shard(const char *input, int nclass) {
         wordRecord->set_class_index(wordClassIdxMap[word]);
         snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[word]);
         wordShard.Insert(std::string(key), record);
+        cnt++;
     }
+    //LOG(ERROR) << wordShard.Count();
+    //LOG(ERROR) << "Count: " << cnt;
     wordShard.Flush();
+    //LOG(ERROR) << wordShard.Count();
     in.close();
 }
 
