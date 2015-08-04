@@ -394,6 +394,7 @@ void RnnlmComputationLayer::Setup(const LayerProto& proto, int npartitions) {
     Factory<Param>* factory=Singleton<Factory<Param>>::Instance();
     weight_ = factory->Create("Param");
     weight_->Setup(proto.param(0), vector<int>{hdim_, vdim_});  // (10010, 30)Need to transpose the original weight matrix for the slicing part
+    //sum_log10 = 0.0;  //TODO kaiping: to delete later
 }
 
 void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
@@ -459,6 +460,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         //LOG(ERROR) << "Mnimum value: " << FLT_MIN;
         //For each word respectively, add a term in the sum_
         sum += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
+        //sum_log10 += log10(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));  //TODO kaiping: to delete later
         //LOG(ERROR) << "SUM: " << sum;
         FreeSpace(p1);
         FreeSpace(p2);
@@ -468,6 +470,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     //LOG(ERROR) << "PPL: " << ppl; //TODO kaiping: to delete later
     perf->Add("sum value", sum);
     perf->Add("ppl value", ppl);
+    //perf->Add("sum log10 value", sum_log10);  //TODO kaiping: to delete later
     //LOG(ERROR) << perf->ToLogString();    //TODO kaiping: to delete later
     //LOG(ERROR) << "----------This is computation layer----------";    //TODO kaiping: to delete later
     //LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
@@ -517,25 +520,25 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             //Compute the gradient for the current layer
             //To check later: can compute values for one t and then back propagate the error/gradient?
             for (int i = 0; i < classsize_; i++) {  //TODO kaiping change or not?
-                //grad[t][i] = 0 - data[t][i];
+                //grad[t][i] = data[t][i];
                 grad_ptr_tmp[t * hdim_ + i] = data_dptr_tmp[t * hdim_ + i];
 
             }
-            //grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
+            //grad[t][classIndex] = data[t][classIndex] - 1;  //Compute ground truth for the class
             grad_ptr_tmp[t * hdim_ + classIndex] = data_dptr_tmp[t * hdim_ + classIndex] - 1;   //Compute ground truth for the class
 
             for (int j = classsize_; j < classsize_ + vocabsize_; j++) {    //TODO kaiping: to change later, first initialize to 0 and then loop in [startVocabIndex, endVocabIndex]
                 if (j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
-                    //grad[t][j] = 0 - data[t][j];
+                    //grad[t][j] = data[t][j];
                     grad_ptr_tmp[t * hdim_ + j] = data_dptr_tmp[t * hdim_ + j];
                 }
                 else {
                     //grad[t][j] = 0;
                     grad_ptr_tmp[t * hdim_ + j] = 0;
                 }
-                //grad[t][classsize_ + wordIndex] = 1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
-                grad_ptr_tmp[t * hdim_ + classsize_ + wordIndex] = data_dptr_tmp[t * hdim_ + classsize_ + wordIndex] - 1;   //Compute ground truth for the word
             }
+            //grad[t][classsize_ + wordIndex] = 1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
+            grad_ptr_tmp[t * hdim_ + classsize_ + wordIndex] = data_dptr_tmp[t * hdim_ + classsize_ + wordIndex] - 1;   //Compute ground truth for the word
 
             //Compute the gradient for the weight matrix, the loop is for various timestamps T
             //Tensor <cpu, 2> gradPart1(grad[t].dptr, Shape2(classsize_, 1));   //(10,1)

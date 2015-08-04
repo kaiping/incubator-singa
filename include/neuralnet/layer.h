@@ -239,7 +239,7 @@ private:
     //int batchsize_;
     int windowsize_; // Use windowsize_ to represent different timestamps
     Param* weight_; // Delete the parameter "bias" as there is no need to use �bias� according to the paper
-    //float sum_;
+    //float sum_log10;  //TODO kaiping: to delete later
     int classsize_;
     int vocabsize_;
 };
