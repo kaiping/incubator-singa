@@ -443,37 +443,39 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         memcpy(data[t].dptr, p1.dptr, sizeof(float) * classsize_);
         memcpy(data[t].dptr + classsize_ + startVocabIndex, p2.dptr, sizeof(float) * (endVocabIndex - startVocabIndex + 1));
 
-        LOG(ERROR) << "p1: " << p1[classIndex];
-        LOG(ERROR) << "p2: " << p2[wordIndex - startVocabIndex];
-        LOG(ERROR) << "word index: " << wordIndex;
-        LOG(ERROR) << "start vocab index: " << startVocabIndex;
-        LOG(ERROR) << "end vocab index: " << endVocabIndex;
-        LOG(ERROR) << "class index: " << classIndex;
-        LOG(ERROR) << "Detailed information: ";
-        for(int i = 0; i < endVocabIndex - startVocabIndex + 1; i++){
-            LOG(ERROR) << p2[i];
-        }
-        LOG(ERROR) << "Actual value: " << p1[classIndex] * p2[wordIndex - startVocabIndex];
-        LOG(ERROR) << "Mnimum value: " << FLT_MIN;
+        //LOG(ERROR) << "Detailed information for p1: ";    //TODO kaiping: to delete later
+        //for(int i = 0; i < classsize_; i++){
+        //    LOG(ERROR) << p1[i];
+        //}
+
+        //LOG(ERROR) << "p1: " << p1[classIndex];
+        CHECK_GE(wordIndex, startVocabIndex);
+        CHECK_LE(wordIndex, endVocabIndex);
+        //LOG(ERROR) << "Detailed information for p2: ";    //TODO kaiping: to delete later
+        //for(int i = 0; i < endVocabIndex - startVocabIndex + 1; i++){
+        //    LOG(ERROR) << p2[i];
+        //}
+        //LOG(ERROR) << "Actual value: " << p1[classIndex] * p2[wordIndex - startVocabIndex];   //TODO kaiping: to delete later
+        //LOG(ERROR) << "Mnimum value: " << FLT_MIN;
         //For each word respectively, add a term in the sum_
         sum += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
-        LOG(ERROR) << "SUM: " << sum;
+        //LOG(ERROR) << "SUM: " << sum;
         FreeSpace(p1);
         FreeSpace(p2);
     }
-    LOG(ERROR) << "SUM: " << sum;
+    //LOG(ERROR) << "SUM: " << sum; //TODO kaiping: to delete later
     ppl = exp(-(1.0 / windowsize_) * sum); //per word
-    LOG(ERROR) << "PPL: " << ppl;
+    //LOG(ERROR) << "PPL: " << ppl; //TODO kaiping: to delete later
     perf->Add("sum value", sum);
     perf->Add("ppl value", ppl);
-    LOG(ERROR) << perf->ToLogString();
-    LOG(ERROR) << "----------This is computation layer----------";
-    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << perf->ToLogString();    //TODO kaiping: to delete later
+    //LOG(ERROR) << "----------This is computation layer----------";    //TODO kaiping: to delete later
+    //LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmComputationLayer::ComputeGradient(Phase phase){
-    LOG(ERROR) << "***********************************************";
+    //LOG(ERROR) << "***********************************************";  //TODO kaiping: to delete later
     //auto data = Tensor2(&data_);    //(win_size, 10010)
     Blob<float> *data_dptr = &data_; //(win_size, 10010)
     float *data_dptr_tmp = data_dptr->mutable_cpu_data();
@@ -516,23 +518,23 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             //To check later: can compute values for one t and then back propagate the error/gradient?
             for (int i = 0; i < classsize_; i++) {  //TODO kaiping change or not?
                 //grad[t][i] = 0 - data[t][i];
-                grad_ptr_tmp[t * hdim_ + i] = 0 - data_dptr_tmp[t * hdim_ + i];
+                grad_ptr_tmp[t * hdim_ + i] = data_dptr_tmp[t * hdim_ + i];
 
             }
             //grad[t][classIndex] = 1 - data[t][classIndex];  //Compute ground truth for the class
-            grad_ptr_tmp[t * hdim_ + classIndex] = 1 - data_dptr_tmp[t * hdim_ + classIndex];   //Compute ground truth for the class
+            grad_ptr_tmp[t * hdim_ + classIndex] = data_dptr_tmp[t * hdim_ + classIndex] - 1;   //Compute ground truth for the class
 
             for (int j = classsize_; j < classsize_ + vocabsize_; j++) {    //TODO kaiping: to change later, first initialize to 0 and then loop in [startVocabIndex, endVocabIndex]
                 if (j >= (classsize_ + startVocabIndex) && j <= (classsize_ + endVocabIndex)) {
                     //grad[t][j] = 0 - data[t][j];
-                    grad_ptr_tmp[t * hdim_ + j] = 0 - data_dptr_tmp[t * hdim_ + j];
+                    grad_ptr_tmp[t * hdim_ + j] = data_dptr_tmp[t * hdim_ + j];
                 }
                 else {
                     //grad[t][j] = 0;
                     grad_ptr_tmp[t * hdim_ + j] = 0;
                 }
                 //grad[t][classsize_ + wordIndex] = 1 - data[t][classsize_ + wordIndex];  //Compute ground truth for the word
-                grad_ptr_tmp[t * hdim_ + classsize_ + wordIndex] = 1 - data_dptr_tmp[t * hdim_ + classsize_ + wordIndex];   //Compute ground truth for the word
+                grad_ptr_tmp[t * hdim_ + classsize_ + wordIndex] = data_dptr_tmp[t * hdim_ + classsize_ + wordIndex] - 1;   //Compute ground truth for the word
             }
 
             //Compute the gradient for the weight matrix, the loop is for various timestamps T
@@ -555,11 +557,11 @@ void RnnlmComputationLayer::ComputeGradient(Phase phase){
             gsrc[t] += dot(gradPart2SliceForSrc, weightPart2Slice); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
         }
     }
-    LOG(ERROR) << "----------This is computation layer----------";
-    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is computation layer----------";    //TODO kaiping: to delete later
+    //LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -598,9 +600,9 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
             data[t] += F<op::sigmoid>(src[t]);
         }
     }
-    LOG(ERROR) << "----------This is sigmoid layer----------";
-    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is sigmoid layer----------";    //TODO kaiping: to delete later
+    //LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
@@ -631,11 +633,11 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
             }
         }
     }
-    LOG(ERROR) << "----------This is sigmoid layer----------";
-    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is sigmoid layer----------";    //TODO kaiping: to delete later
+    //LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -664,9 +666,9 @@ void RnnlmInnerproductLayer::ComputeFeature(Phase phase, Metric* perf) {
   auto src = Tensor2(srclayers_[0]->mutable_data(this));    //(window_size, |V|)
   auto weight = Tensor2(weight_->mutable_data());           //(|V|, 30)
     data = dot(src, weight);
-    LOG(ERROR) << "----------This is inner product layer----------";
-    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is inner product layer----------";  //TODO kaiping: to delete later
+    //LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
@@ -692,11 +694,11 @@ void RnnlmInnerproductLayer::ComputeGradient(Phase phas) {
         }
         gsrc = dot(grad, weight.T());
     }
-    LOG(ERROR) << "----------This is inner product layer----------";
-    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is inner product layer----------";  //TODO kaiping: to delete later
+    //LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 
@@ -735,9 +737,9 @@ void RnnlmWordinputLayer::ComputeFeature(Phase phase, Metric* perf) {
       CHECK_LT(src_ptr_tmp[t], vocabsize_);
       memcpy(data_ptr_tmp + hdim_ * t, weight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), sizeof(float) * hdim_);
   }
-    LOG(ERROR) << "----------This is wordinput layer----------";
-    LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is wordinput layer----------"; //TODO kaiping: to delete later
+    //LOG(ERROR) << "Forward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Forward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
@@ -755,11 +757,11 @@ void RnnlmWordinputLayer::ComputeGradient(Phase phas) {
     //gweight[src[t]] = grad[t];
        memcpy(gweight_ptr_tmp + hdim_ * static_cast<int>(src_ptr_tmp[t]), grad_ptr_tmp + hdim_ * t, sizeof(float) * hdim_);
    }
-    LOG(ERROR) << "----------This is wordinput layer----------";
-    LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
-    LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
+    //LOG(ERROR) << "----------This is wordinput layer----------";  //TODO kaiping: to delete later
+    //LOG(ERROR) << "Backward Phase: Sum value of weight data: " << weight_->mutable_data()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of weight grad: " << weight_->mutable_grad()->asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of data: " << data_.asum_data();
+    //LOG(ERROR) << "Backward Phase: Sum value of grad: " << grad_.asum_data();
 }
 
 /*********** 5-Implementation for RnnlmWordparserLayer **********/
@@ -777,7 +779,7 @@ void RnnlmWordparserLayer::ParseRecords(Phase phase, const vector<Record>& recor
         //data_[i] = records[i].word_record().word_index();
         data_dptr[i] = records[i].word_record().word_index();
     }
-    LOG(ERROR) << "This is word parser layer";
+    //LOG(ERROR) << "This is word parser layer";    //TODO kaiping: to delete later
 }
 
 /*********** 6-Implementation for RnnlmClassparserLayer **********/
@@ -806,7 +808,7 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& reco
         //LOG(ERROR) << "Test class parser information: (start, end, word_idx, end_idx): ";
         //LOG(ERROR) << "( " << data_dptr[4 * (i - 1) + 0] << " , " << data_dptr[4 * (i - 1) + 1] << " , " << data_dptr[4 * (i - 1) + 2] << " , " << data_dptr[4 * (i - 1) + 3] << " )";
     }
-    LOG(ERROR) << "This is class parser layer";
+    //LOG(ERROR) << "This is class parser layer";   //TODO kaiping: to delete later
 }
 
 /*********** 7-Implementation for RnnlmDataLayer **********/
@@ -822,7 +824,7 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   windowsize_ = proto.rnnlmdata_conf().window_size();
   records_.resize(windowsize_ + 1);
   classsize_ = classshard_->Count(); //First read through class_shard and obtain values for class_size and vocab_size
-        LOG(ERROR) << "class size: " << classsize_;
+        //LOG(ERROR) << "class size: " << classsize_;   //TODO kaiping: to delete later
   classinfo_.Reshape(vector<int>{classsize_, 2});    //classsize_ rows and 2 columns
 
   int max_vocabidx_end = 0;
@@ -838,7 +840,7 @@ void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
     }
   }
   vocabsize_ = max_vocabidx_end + 1;
-        LOG(ERROR) << "vocabulary size: " << vocabsize_;
+        //LOG(ERROR) << "vocabulary size: " << vocabsize_;  //TODO kaiping: to delete later
   wordshard_->Next(&word_key, &records_[windowsize_]);    //Then read the 1st record in word_shard and assign it to records_[windowsize_] for convenience & consistency in ComputeFeature()
 }
 
@@ -862,7 +864,7 @@ void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
 	}
 	if (flag == true) break;
 }
-    LOG(ERROR) << "This is data layer";
+    //LOG(ERROR) << "This is data layer";   //TODO kaiping: to delete later
 }
 
 
