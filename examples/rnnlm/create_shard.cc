@@ -64,7 +64,7 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     for (auto& it : wordFreqSortedVec) {
         // index words
         //wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
-        wordIdxMap[it.first] = static_cast<int>(wordIdxCnt);
+        wordIdxMap[it.first] = wordIdxCnt;
         // generate classes
         tmpWordFreqSum += it.second;
         wordClassIdxMap[it.first] = classIdxCnt;
