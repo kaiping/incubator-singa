@@ -31,7 +31,8 @@ namespace mshadow {
          */
         Random<cpu> (){
           // obtain a seed from the system clock:
-          unsigned s= std::chrono::system_clock::now().time_since_epoch().count();
+          //unsigned s= std::chrono::system_clock::now().time_since_epoch().count();    // TODO kaiping this is for testing, need to restore later
+            unsigned s= 0;  // TODO kaiping this is for testing, need to restore later
           Seed(s);
         }
         /*!

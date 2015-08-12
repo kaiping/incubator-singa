@@ -600,7 +600,8 @@ void RnnlmSigmoidLayer::ComputeFeature(Phase phase, Metric* perf) {
         else{
             //data[t] = dot(data[t - 1], weight) + F<op::sigmoid>(src[t]);
             data[t] = dot(data[t - 1], weight); //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
-            data[t] += F<op::sigmoid>(src[t]);
+            data[t] += src[t];
+            data[t] = F<op::sigmoid>(data[t]);
         }
     }
     //LOG(ERROR) << "----------This is sigmoid layer----------";    //TODO kaiping: to delete later
