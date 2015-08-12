@@ -620,20 +620,32 @@ void RnnlmSigmoidLayer::ComputeGradient(Phase phase){
                                                 gweight.shape[1]);   //Need initialization before aggregate updates in all timestamps
         //1-Update the gradient for the current layer, add a new term
         for (int t = windowsize_ - 2; t >= 0; t--) {   //grad[windowsize_ - 1] does not have this term
-            grad[t] += dot(grad[t + 1], weight);    //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
+            Tensor<cpu, 1> tmp_sum1(nullptr, Shape1(hdim_));
+            AllocSpace(tmp_sum1); //Allocate the space for tmp_sum1; after allocating the space, must free the space
+            //grad[t] += F<op::sigmoid_grad>(data[t+1]) * (dot(grad[t + 1], weight));    //TODO kaiping (ddim, ldim, rdim) = (1, 1, 2)
+            tmp_sum1 = dot(grad[t + 1], weight);
+            tmp_sum1 = F<op::sigmoid_grad>(data[t+1]) * tmp_sum1;
+            grad[t] += tmp_sum1;
+            FreeSpace(tmp_sum1);
         }
 
         //2-Compute the gradient for the weight matrix; 3-Compute the gradient for src layer; the loop is for various timestamps T
         for (int t = 0; t < windowsize_; t++) {
             if (t == 0) {
-                gsrc[t] = F<op::sigmoid_grad>(data[t]) *
-                          grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
+                gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //?here F<op::sigmoid_grad>(data) is a scalar value; make sure to use the final value of grad(t)
             }
             else {
                 Tensor <cpu, 2> data_t_minus1(data[t - 1].dptr, Shape2(hdim_, 1));   //(30, 1)
-                Tensor <cpu, 2> grad_t_trans(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
-                gweight += dot(data_t_minus1, grad_t_trans);   //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
+                //Tensor <cpu, 2> grad_t_trans(grad[t].dptr, Shape2(1, hdim_));   //(1,30)
+                Tensor <cpu, 1> grad_t(grad[t].dptr, Shape1(hdim_));
+                Tensor<cpu, 1> tmp_sum2(nullptr, Shape1(hdim_));
+                AllocSpace(tmp_sum2); //Allocate the space for tmp_sum2; after allocating the space, must free the space
+                //gweight += F<op::sigmoid_grad>(data[t]) * (dot(data_t_minus1, grad_t_trans));   //TODO kaiping (ddim, ldim, rdim) = (2, 2, 1) -> (2, 2, 2)
+                tmp_sum2 = F<op::sigmoid_grad>(data[t]) * grad_t;
+                Tensor<cpu, 2> tmp_sum3(tmp_sum2.dptr, Shape2(1, hdim_));   //(1,30)
+                gweight += dot(data_t_minus1, tmp_sum3);
                 gsrc[t] = F<op::sigmoid_grad>(data[t]) * grad[t];  //TODO here F<op::sigmoid_grad>(data) is a scalar value
+                FreeSpace(tmp_sum2);
             }
         }
     }
