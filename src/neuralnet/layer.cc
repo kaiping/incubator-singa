@@ -421,7 +421,9 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     }
 
     float sum = 0.0;
+    float sum10 = 0.0;
     float ppl = 0.0;
+    float ppl10 = 0.0;
     //Compute p1(t), p2(t) using the computed value of y1 and y2 and then copy to the "data" of ComputationLayer; Additionally compute the sum_ value
     for(int t = 0; t < windowsize_; t++){
         int startVocabIndex = static_cast<int>(label[t * 4 + 0]);
@@ -460,6 +462,7 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
         //LOG(ERROR) << "Mnimum value: " << FLT_MIN;
         //For each word respectively, add a term in the sum_
         sum += log(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
+        sum10 += log10(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));
         //sum_log10 += log10(std::max(p1[classIndex] * p2[wordIndex - startVocabIndex], FLT_MIN));  //TODO kaiping: to delete later
         //LOG(ERROR) << "SUM: " << sum;
         FreeSpace(p1);
@@ -467,9 +470,12 @@ void RnnlmComputationLayer::ComputeFeature(Phase phase, Metric* perf) {
     }
     //LOG(ERROR) << "SUM: " << sum; //TODO kaiping: to delete later
     ppl = exp(-(1.0 / windowsize_) * sum); //per word
+    ppl10 = pow(10.0, -(1.0 / windowsize_) * sum10);
     //LOG(ERROR) << "PPL: " << ppl; //TODO kaiping: to delete later
     perf->Add("sum value", sum);
     perf->Add("ppl value", ppl);
+    perf->Add("sum10 value", sum10);
+    perf->Add("ppl10 value", ppl10);
     //perf->Add("sum log10 value", sum_log10);  //TODO kaiping: to delete later
     //LOG(ERROR) << perf->ToLogString();    //TODO kaiping: to delete later
     //LOG(ERROR) << "----------This is computation layer----------";    //TODO kaiping: to delete later
