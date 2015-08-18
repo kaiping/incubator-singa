@@ -135,14 +135,12 @@ void loadClusterForNonTrainMode(const char *input, int nclass,
 }
 
 void create_shard(const char *input, int nclass) {
-    StrIntMap *wordIdxMapPtr;
-    StrIntMap *wordClassIdxMapPtr;
-    wordIdxMapPtr = new StrIntMap;
-    wordClassIdxMapPtr = new StrIntMap;
+    StrIntMap wordIdxMap;
+    StrIntMap wordClassIdxMap;
     if (-1 == nclass) {
-        loadClusterForNonTrainMode(input, nclass, wordIdxMapPtr, wordClassIdxMapPtr);
+        loadClusterForNonTrainMode(input, nclass, &wordIdxMap, &wordClassIdxMap);
     } else {
-        doClusterForTrainMode(input, nclass, wordIdxMapPtr, wordClassIdxMapPtr);
+        doClusterForTrainMode(input, nclass, &wordIdxMap, &wordClassIdxMap);
     }
     // generate word data
     // load input file
@@ -161,17 +159,15 @@ void create_shard(const char *input, int nclass) {
     while (in >> word) {
         // TODO(kaiping): do not forget here if modify tokenize logic
         // TODO(kaiping): how to handle unknown word, just skip for now
-        if ((*wordIdxMapPtr).end() == (*wordIdxMapPtr).find(word)) continue;
+        if (wordIdxMap.end() == wordIdxMap.find(word)) continue;
         wordRecord->set_word(word);
-        wordRecord->set_word_index((*wordIdxMapPtr)[word]);
-        wordRecord->set_class_index((*wordClassIdxMapPtr)[word]);
-        snprintf(key, kMaxKeyLength, "%08d", (*wordIdxMapPtr)[word]);
+        wordRecord->set_word_index(wordIdxMap[word]);
+        wordRecord->set_class_index(wordClassIdxMap[word]);
+        snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[word]);
         wordShard.Insert(std::string(key), record);
     }
     wordShard.Flush();
     in.close();
-    delete wordIdxMapPtr;
-    delete wordClassIdxMapPtr;
 }
 
 int main(int argc, char **argv) {
