@@ -137,6 +137,8 @@ void loadClusterForNonTrainMode(const char *input, int nclass,
 void create_shard(const char *input, int nclass) {
     StrIntMap *wordIdxMapPtr;
     StrIntMap *wordClassIdxMapPtr;
+    wordIdxMapPtr = new StrIntMap;
+    wordClassIdxMapPtr = new StrIntMap;
     if (-1 == nclass) {
         loadClusterForNonTrainMode(input, nclass, wordIdxMapPtr, wordClassIdxMapPtr);
     } else {
@@ -168,6 +170,8 @@ void create_shard(const char *input, int nclass) {
     }
     wordShard.Flush();
     in.close();
+    delete wordIdxMapPtr;
+    delete wordClassIdxMapPtr;
 }
 
 int main(int argc, char **argv) {
