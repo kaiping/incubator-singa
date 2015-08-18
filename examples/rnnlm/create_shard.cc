@@ -27,11 +27,11 @@ using singa::DataShard;
 using StrIntMap = std::map<std::string, int>;
 using StrIntPair = std::pair<std::string, int>;
 
-void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
-    StrIntMap& wordClassIdxMap) {
+void doClusterForTrainMode(const char *input, int nclass, StrIntMap *wordIdxMapPtr,
+    StrIntMap *wordClassIdxMapPtr) {
     // init
-    wordIdxMap.clear();
-    wordClassIdxMap.clear();
+    (*wordIdxMapPtr).clear();
+    (*wordClassIdxMapPtr).clear();
 
     // load input file
     std::ifstream in(input);
@@ -68,11 +68,10 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     int wordIdxCnt = 0;
     for (auto& it : wordFreqSortedVec) {
         // index words
-        // wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
-        wordIdxMap[it.first] = wordIdxCnt;
+        (*wordIdxMapPtr)[it.first] = wordIdxCnt;
         // generate classes
         tmpWordFreqSum += it.second;
-        wordClassIdxMap[it.first] = classIdxCnt;
+        (*wordClassIdxMapPtr)[it.first] = classIdxCnt;
         // split a new class (ensure no empyt class)
         if ((tmpWordFreqSum >= (classIdxCnt + 1) * sumFreq / nclass) ||
                 (nword - wordIdxCnt) <= nclass - classIdxCnt) {
@@ -107,9 +106,9 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
             record.MutableExtension(singa::singleword);
     for (auto& it : wordFreqSortedVec) {
         wordRecord->set_word(it.first);
-        wordRecord->set_word_index(wordIdxMap[it.first]);
-        wordRecord->set_class_index(wordClassIdxMap[it.first]);
-        snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[it.first]);
+        wordRecord->set_word_index((*wordIdxMapPtr)[it.first]);
+        wordRecord->set_class_index((*wordClassIdxMapPtr)[it.first]);
+        snprintf(key, kMaxKeyLength, "%08d", (*wordIdxMapPtr)[it.first]);
         vocabShard.Insert(std::string(key), record);
     }
     vocabShard.Flush();
@@ -117,11 +116,10 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
 }
 
 void loadClusterForNonTrainMode(const char *input, int nclass,
-     StrIntMap& wordIdxMap, StrIntMap& wordClassIdxMap) {
+     StrIntMap *wordIdxMapPtr, StrIntMap *wordClassIdxMapPtr) {
     // init
-    wordIdxMap.clear();
-    wordClassIdxMap.clear();
-
+    (*wordIdxMapPtr).clear();
+    (*wordClassIdxMapPtr).clear();
     // load vocabulary shard data
     DataShard vocabShard("rnnlm_vocab_shard", DataShard::kRead);
     std::string key;
@@ -131,17 +129,18 @@ void loadClusterForNonTrainMode(const char *input, int nclass,
     while (vocabShard.Next(&key, &record)) {
         singa::SingleWordRecord *wordRecord =
                 record.MutableExtension(singa::singleword);
-        wordIdxMap[wordRecord->word()] = wordRecord->word_index();
-        wordClassIdxMap[wordRecord->word()] = wordRecord->class_index();
+        (*wordIdxMapPtr)[wordRecord->word()] = wordRecord->word_index();
+        (*wordClassIdxMapPtr)[wordRecord->word()] = wordRecord->class_index();
     }
 }
 
 void create_shard(const char *input, int nclass) {
-    StrIntMap wordIdxMap, wordClassIdxMap;
+    StrIntMap *wordIdxMapPtr;
+    StrIntMap *wordClassIdxMapPtr;
     if (-1 == nclass) {
-        loadClusterForNonTrainMode(input, nclass, wordIdxMap, wordClassIdxMap);
+        loadClusterForNonTrainMode(input, nclass, wordIdxMapPtr, wordClassIdxMapPtr);
     } else {
-        doClusterForTrainMode(input, nclass, wordIdxMap, wordClassIdxMap);
+        doClusterForTrainMode(input, nclass, wordIdxMapPtr, wordClassIdxMapPtr);
     }
     // generate word data
     // load input file
@@ -160,11 +159,11 @@ void create_shard(const char *input, int nclass) {
     while (in >> word) {
         // TODO(kaiping): do not forget here if modify tokenize logic
         // TODO(kaiping): how to handle unknown word, just skip for now
-        if (wordIdxMap.end() == wordIdxMap.find(word)) continue;
+        if ((*wordIdxMapPtr).end() == (*wordIdxMapPtr).find(word)) continue;
         wordRecord->set_word(word);
-        wordRecord->set_word_index(wordIdxMap[word]);
-        wordRecord->set_class_index(wordClassIdxMap[word]);
-        snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[word]);
+        wordRecord->set_word_index((*wordIdxMapPtr)[word]);
+        wordRecord->set_class_index((*wordClassIdxMapPtr)[word]);
+        snprintf(key, kMaxKeyLength, "%08d", (*wordIdxMapPtr)[word]);
         wordShard.Insert(std::string(key), record);
     }
     wordShard.Flush();

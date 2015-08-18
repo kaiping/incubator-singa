@@ -648,7 +648,7 @@ void RnnlmInnerproductLayer::Setup(const LayerProto& proto, int npartitions) {
   const auto& src = srclayers_[0]->data(this);
   windowsize_ = src.shape()[0];
   vdim_ = src.count()/windowsize_;  // word_length
-  //hdim_ = proto.rnnlminnerproduct_conf().num_output();
+  // hdim_ = proto.rnnlminnerproduct_conf().num_output();
   hdim_ = proto.GetExtension(rnnlminnerproduct_conf).num_output();
   data_.Reshape(vector<int>{windowsize_, hdim_});
   grad_.ReshapeLike(data_);
