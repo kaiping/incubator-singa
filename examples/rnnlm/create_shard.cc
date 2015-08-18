@@ -19,6 +19,7 @@
 #include "utils/data_shard.h"
 #include "utils/common.h"
 #include "proto/common.pb.h"
+#include "proto/user.pb.h"
 
 
 using singa::DataShard;
@@ -82,8 +83,8 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     char key[kMaxKeyLength];
     DataShard classShard("rnnlm_class_shard", DataShard::kCreate);
     singa::Record record;
-    //record.set_type(singa::Record::kWordClass);  // CLEE error
-    singa::WordClassRecord *classRecord = record.mutable_class_record();
+    record.set_type(singa::Record::kWordClassRecord);
+    singa::WordClassRecord *classRecord = record.MutableExtension(singa::wordclass);
     for (int i = 0; i != classInfo.size(); ++i) {
         classRecord->set_start(classInfo[i].first);
         classRecord->set_end(classInfo[i].second);
@@ -96,8 +97,8 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
 
     // generate vocabulary shard
     DataShard vocabShard("rnnlm_vocab_shard", DataShard::kCreate);
-    //record.set_type(singa::Record::kSingleWord);  // CLEE error
-    singa::SingleWordRecord *wordRecord = record.mutable_word_record();
+    record.set_type(singa::Record::kSingleWordRecord);
+    singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
     for (auto& it : wordFreqSortedVec) {
         wordRecord->set_word(it.first);
         wordRecord->set_word_index(wordIdxMap[it.first]);
@@ -122,7 +123,7 @@ void loadClusterForNonTrainMode(const char *input, int nclass, StrIntMap& wordId
 
     // fill value into map
     while (vocabShard.Next(&key, &record)) {
-        singa::SingleWordRecord *wordRecord = record.mutable_word_record();
+        singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
         wordIdxMap[wordRecord->word()] = wordRecord->word_index();
         wordClassIdxMap[wordRecord->word()] = wordRecord->class_index();
     }
@@ -146,7 +147,7 @@ void create_shard(const char *input, int nclass) {
     DataShard wordShard("rnnlm_word_shard_"+std::string(strchr(input,'/')+1), DataShard::kCreate);
     singa::Record record;
     //record.set_type(singa::Record::kSingleWord);  // CLEE error
-    singa::SingleWordRecord *wordRecord = record.mutable_word_record();
+    singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
     int wordStreamCnt = 0;
     const int kMaxKeyLength = 10;
     char key[kMaxKeyLength];

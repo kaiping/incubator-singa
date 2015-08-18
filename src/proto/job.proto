@@ -255,22 +255,25 @@ message LayerProto {
   // names of parameters shared from other layers
   repeated string share_param = 60;
   optional int32 partition_id = 62 [default = 0];
+
+  extensions 201 to 300;
   
   //For implementation of RNNLM application
   // 1-configuration for RnnlmComputation layer
-  optional RnnlmComputationProto rnnlmcomputation_conf = 63;
+  //optional RnnlmComputationProto rnnlmcomputation_conf = 63;
   // 2-configuration for RnnlmSigmoid layer
-  optional RnnlmSigmoidProto rnnlmsigmoid_conf = 64;
+  //optional RnnlmSigmoidProto rnnlmsigmoid_conf = 64;
   // 3-configuration for RnnlmInnerproduct layer
-  optional RnnlmInnerproductProto rnnlminnerproduct_conf = 65;
+  //optional RnnlmInnerproductProto rnnlminnerproduct_conf = 65;
   // 4-configuration for RnnlmWordinput layer
-  optional RnnlmWordinputProto rnnlmwordinput_conf = 66;
+  //optional RnnlmWordinputProto rnnlmwordinput_conf = 66;
   // 5-configuration for RnnlmWordparser layer
   //optional RnnlmWordparserProto rnnlmwordparser_conf = 67;
   // 6-configuration for RnnlmClassparser layer
   //optional RnnlmClassparserProto rnnlmclassparser_conf = 68;
   // 7-configuration for RnnlmData layer
-  optional RnnlmDataProto rnnlmdata_conf = 69;
+  //optional RnnlmDataProto rnnlmdata_conf = 69;
+   
 }
 
 message RGBImageProto {
@@ -423,6 +426,7 @@ message ReLUProto {
   optional float negative_slope = 1 [default = 0];
 }
 
+/*
 //For implementation of RNNLM application
 // 1-Message that stores parameters used by RnnlmComputationLayer
 message RnnlmComputationProto {
@@ -468,7 +472,7 @@ message RnnlmDataProto {
   // window size.
   required int32 window_size = 3;
 }
-
+*/
 
 message UpdaterProto {
   enum UpdaterType{

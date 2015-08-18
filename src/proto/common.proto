@@ -29,8 +29,6 @@ enum ShareOption {
   kWhole = 1;
 };
 
-
-
 enum ConnectionType {
   kOneToOne = 0;
   kOneToAll = 1;
@@ -86,8 +84,10 @@ message Record {
   optional Type type = 1 [default = kSingleLabelImage];
   // configuration for
   optional SingleLabelImageRecord image = 2;
-  optional WordClassRecord class_record = 3;
-  optional SingleWordRecord word_record = 4;
+  //optional WordClassRecord class_record = 3;
+  //optional SingleWordRecord word_record = 4;
+
+  extensions 101 to 200;
 }
 
 message SingleLabelImageRecord {
@@ -97,6 +97,7 @@ message SingleLabelImageRecord {
   repeated float data = 4 [packed = true];
 }
 
+/* 
 // For implementation of Recurrent Neural Network
 message WordClassRecord{
   optional int32 class_index = 1; // the index of this class
@@ -109,6 +110,7 @@ message SingleWordRecord {
   optional int32 word_index = 2;   // the index of this word in the vocabulary
   optional int32 class_index = 3;   // the index of the class corresponding to this word
 }
+*/
 
 message MetricProto {
   repeated string name =1;

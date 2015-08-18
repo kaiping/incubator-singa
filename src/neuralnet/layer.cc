@@ -648,7 +648,8 @@ void RnnlmInnerproductLayer::Setup(const LayerProto& proto, int npartitions) {
   const auto& src = srclayers_[0]->data(this);
   windowsize_ = src.shape()[0];
   vdim_ = src.count()/windowsize_;  // word_length
-  hdim_ = proto.rnnlminnerproduct_conf().num_output();
+  //hdim_ = proto.rnnlminnerproduct_conf().num_output();
+  hdim_ = proto.GetExtension(rnnlminnerproduct_conf).num_output();
   data_.Reshape(vector<int>{windowsize_, hdim_});
   grad_.ReshapeLike(data_);
   Factory<Param>* factory = Singleton<Factory<Param>>::Instance();
@@ -700,7 +701,7 @@ void RnnlmWordinputLayer::Setup(const LayerProto& proto, int npartitions) {
   windowsize_ = src.shape()[0];
   vdim_ = src.count()/windowsize_;
     CHECK_EQ(vdim_, 1);
-  hdim_ = proto.rnnlmwordinput_conf().word_length();  // word_length
+  hdim_ = proto.GetExtension(rnnlmwordinput_conf).word_length();  // word_length
   data_.Reshape(vector<int>{windowsize_, hdim_});
   grad_.ReshapeLike(data_);
   Factory<Param>* factory = Singleton<Factory<Param>>::Instance();
@@ -762,7 +763,7 @@ void RnnlmWordparserLayer::ParseRecords(Phase phase,
 }
 
 /*********** 6-Implementation for RnnlmClassparserLayer **********/
-void RnnlmClassparserLayer::Setup(const LayerProto& proto, int npartitions){
+void RnnlmClassparserLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(), 1);
   windowsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->windowsize();
@@ -770,85 +771,78 @@ void RnnlmClassparserLayer::Setup(const LayerProto& proto, int npartitions){
   classsize_ = static_cast<RnnlmDataLayer*>(srclayers_[0])->classsize();
   data_.Reshape(vector<int>{windowsize_, 4});
 }
-void RnnlmClassparserLayer::ParseRecords(Phase phase, const vector<Record>& records, Blob<float>* blob){
+void RnnlmClassparserLayer::ParseRecords(Phase phase,
+    const vector<Record>& records, Blob<float>* blob) {
     float *data_dptr = data_.mutable_cpu_data();
-    //Blob<int> *class_info_ptr = (static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo());
-    int *class_info_ptr_tmp = (static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo())->mutable_cpu_data();
-    for(int i = 1; i < records.size(); i++){//The last windowsize_ records in input "windowsize_ + 1" records
+    // Blob<int> *class_info_ptr = (static_cast<RnnlmDataLayer*>(srclayers_[0])
+    // ->classinfo());
+    int *class_info_ptr_tmp = (static_cast<RnnlmDataLayer*>
+        (srclayers_[0])->classinfo())->mutable_cpu_data();
+    for (int i = 1; i < records.size(); i++) {  // Last windowsize_ records
         int tmp_class_idx = records[i].word_record().class_index();
-        //data_[i][0] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][0];
+        // data_[i][0] = (*(static_cast<RnnlmDataLayer*>
+        // (srclayers_[0])->classinfo()))[tmp_class_idx][0];
         data_dptr[4 * (i - 1) + 0] = class_info_ptr_tmp[2 * tmp_class_idx + 0];
-        //data_[i][1] = (*(static_cast<RnnlmDataLayer*>(srclayers_[0])->classinfo()))[tmp_class_idx][1];
+        // data_[i][1] = (*(static_cast<RnnlmDataLayer*>
+        // (srclayers_[0])->classinfo()))[tmp_class_idx][1];
         data_dptr[4 * (i - 1) + 1] = class_info_ptr_tmp[2 * tmp_class_idx + 1];
-        //data_[i][2] = records[i].word_record().word_index();
+        // data_[i][2] = records[i].word_record().word_index();
         data_dptr[4 * (i - 1) + 2] = records[i].word_record().word_index();
-        //data_[i][3] = tmp_class_idx;
+        // data_[i][3] = tmp_class_idx;
         data_dptr[4 * (i - 1) + 3] = tmp_class_idx;
-        //LOG(ERROR) << "Test class parser information: (start, end, word_idx, end_idx): ";
-        //LOG(ERROR) << "( " << data_dptr[4 * (i - 1) + 0] << " , " << data_dptr[4 * (i - 1) + 1] << " , " << data_dptr[4 * (i - 1) + 2] << " , " << data_dptr[4 * (i - 1) + 3] << " )";
     }
-    //LOG(ERROR) << "This is class parser layer";   //TODO kaiping: to delete later
 }
 
 /*********** 7-Implementation for RnnlmDataLayer **********/
 void RnnlmDataLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
   classshard_ = std::make_shared<DataShard>(
-		proto.rnnlmdata_conf().class_path(),
-		DataShard::kRead);
+    proto.GetExtension(rnnlmdata_conf).class_path(), DataShard::kRead);
   wordshard_ = std::make_shared<DataShard>(
-		proto.rnnlmdata_conf().word_path(),
-		DataShard::kRead);
+    proto.GetExtension(rnnlmdata_conf).word_path(), DataShard::kRead);
   string class_key, word_key;
-  windowsize_ = proto.rnnlmdata_conf().window_size();
+  windowsize_ = proto.GetExtension(rnnlmdata_conf).window_size();
   records_.resize(windowsize_ + 1);
-  classsize_ = classshard_->Count(); //First read through class_shard and obtain values for class_size and vocab_size
-        //LOG(ERROR) << "class size: " << classsize_;   //TODO kaiping: to delete later
-  classinfo_.Reshape(vector<int>{classsize_, 2});    //classsize_ rows and 2 columns
-
+  classsize_ = classshard_->Count();  // Obtain class_size and vocab_size
+  classinfo_.Reshape(vector<int>{classsize_, 2});
   int max_vocabidx_end = 0;
         int *class_info_ptr = classinfo_.mutable_cpu_data();
-  for(int i = 0; i < classsize_; i++){
+  singa::WordClassRecord wcr;
+  for (int i = 0; i < classsize_; i++) {
     classshard_->Next(&class_key, &sample_);
-    //classinfo_[i][0] = sample_.class_record().start();
-      class_info_ptr[2 * i + 0] = sample_.class_record().start();
-    //classinfo_[i][1] = sample_.class_record().end();
-      class_info_ptr[2 * i + 1] = sample_.class_record().end();
-    if(sample_.class_record().end() > max_vocabidx_end){
-        max_vocabidx_end = sample_.class_record().end();
+    wcr = sample_.GetExtension(wordclass);
+    // classinfo_[i][0] = sample_.class_record().start();
+      class_info_ptr[2 * i + 0] = wcr.start();
+    // classinfo_[i][1] = sample_.class_record().end();
+      class_info_ptr[2 * i + 1] = wcr.end();
+    if (wcr.end() > max_vocabidx_end) {
+        max_vocabidx_end = wcr.end();
     }
   }
   vocabsize_ = max_vocabidx_end + 1;
-        //LOG(ERROR) << "vocabulary size: " << vocabsize_;  //TODO kaiping: to delete later
-  wordshard_->Next(&word_key, &records_[windowsize_]);    //Then read the 1st record in word_shard and assign it to records_[windowsize_] for convenience & consistency in ComputeFeature()
+  // Read 1st record in word_shard and assign it to records_[windowsize_]
+  wordshard_->Next(&word_key, &records_[windowsize_]);
 }
 
 
-void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf){
+void RnnlmDataLayer::ComputeFeature(Phase phase, Metric* perf) {
   CHECK(records_.size() <= wordshard_->Count());
   records_[0] = records_[windowsize_];
-    //LOG(ERROR) << "Training data shard info: word: " << records_[0].word_record().word() << " wordIndex: "
-    //<< records_[0].word_record().word_index() << " classIndex: " << records_[0].word_record().class_index();
   while (true) {
-	bool flag = true;
-	for (int i = 1; i < records_.size(); i++) { //size of records_ is windowsize_ + 1; range: [1, windowsize_]
-		string key;
-		if (!wordshard_->Next(&key, &records_[i])) { //When throwing the ending words ( < window_size)
-			wordshard_->SeekToFirst();
-			flag = false;
-			break;
-		}
-        //LOG(ERROR) << "Training data shard info: word: " << records_[i].word_record().word() << " wordIndex: "
-        //<< records_[i].word_record().word_index() << " classIndex: " << records_[i].word_record().class_index();
-	}
-	if (flag == true) break;
+    bool flag = true;
+      // Size of records_ is windowsize_ + 1; range: [1, windowsize_]
+      for (int i = 1; i < records_.size(); i++) {
+          string key;
+        // When throwing the ending words ( < window_size)
+        if (!wordshard_->Next(&key, &records_[i])) {
+          wordshard_->SeekToFirst();
+          flag = false;
+          break;
+        }
+    }
+    if (flag == true) break;
 }
-    //LOG(ERROR) << "This is data layer";   //TODO kaiping: to delete later
 }
-
-
-
-
 
 /*****************************************************************************
  * Implementation for LabelLayer
