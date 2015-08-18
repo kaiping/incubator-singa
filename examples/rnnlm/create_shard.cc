@@ -27,7 +27,8 @@ using singa::DataShard;
 using StrIntMap = std::map<std::string, int>;
 using StrIntPair = std::pair<std::string, int>;
 
-void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap, StrIntMap& wordClassIdxMap) {
+void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
+    StrIntMap& wordClassIdxMap) {
     // init
     wordIdxMap.clear();
     wordClassIdxMap.clear();
@@ -40,7 +41,7 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     std::string word;
     StrIntMap wordFreqMap;
     while (in >> word) {
-        // TODO(kaiping): improve tokenize logic for complex input format (such as symbols)
+        // TODO(kaiping): improve tokenize logic for complex input format
         ++wordFreqMap[word];
     }
     int nword = static_cast<int>(wordFreqMap.size());
@@ -50,11 +51,14 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     for (auto& it : wordFreqMap) {
         sumFreq += it.second;
     }
-    
     // index words after sorting
-    std::vector<StrIntPair> wordFreqSortedVec(wordFreqMap.begin(), wordFreqMap.end());
-    auto pairSecondGreater = [](StrIntPair a, StrIntPair b) { return a.second > b.second; };
-    std::sort(wordFreqSortedVec.begin(), wordFreqSortedVec.end(), pairSecondGreater);
+    std::vector<StrIntPair> wordFreqSortedVec(wordFreqMap.begin(),
+                                              wordFreqMap.end());
+    auto pairSecondGreater = [](StrIntPair a, StrIntPair b) {
+        return a.second > b.second;
+    };
+    std::sort(wordFreqSortedVec.begin(), wordFreqSortedVec.end(),
+              pairSecondGreater);
 
     // split words into classes by freq
     std::vector<std::pair<int, int> > classInfo;
@@ -64,27 +68,28 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     int wordIdxCnt = 0;
     for (auto& it : wordFreqSortedVec) {
         // index words
-        //wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
+        // wordIdxMap[it.first] = static_cast<int>(wordIdxMap.size());
         wordIdxMap[it.first] = wordIdxCnt;
         // generate classes
         tmpWordFreqSum += it.second;
         wordClassIdxMap[it.first] = classIdxCnt;
         // split a new class (ensure no empyt class)
-        if ((tmpWordFreqSum >= (classIdxCnt + 1) * sumFreq / nclass) || (nword - wordIdxCnt) <= nclass - classIdxCnt) {
+        if ((tmpWordFreqSum >= (classIdxCnt + 1) * sumFreq / nclass) ||
+                (nword - wordIdxCnt) <= nclass - classIdxCnt) {
             classInfo.emplace_back(std::make_pair(nextStartPos, wordIdxCnt));
             nextStartPos = wordIdxCnt + 1;
             ++classIdxCnt;
         }
         ++wordIdxCnt;
     }
-    
     // generate class shard
     const int kMaxKeyLength = 10;
     char key[kMaxKeyLength];
     DataShard classShard("rnnlm_class_shard", DataShard::kCreate);
     singa::Record record;
     record.set_type(singa::Record::kWordClassRecord);
-    singa::WordClassRecord *classRecord = record.MutableExtension(singa::wordclass);
+    singa::WordClassRecord *classRecord =
+            record.MutableExtension(singa::wordclass);
     for (int i = 0; i != classInfo.size(); ++i) {
         classRecord->set_start(classInfo[i].first);
         classRecord->set_end(classInfo[i].second);
@@ -98,7 +103,8 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     // generate vocabulary shard
     DataShard vocabShard("rnnlm_vocab_shard", DataShard::kCreate);
     record.set_type(singa::Record::kSingleWordRecord);
-    singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
+    singa::SingleWordRecord *wordRecord =
+            record.MutableExtension(singa::singleword);
     for (auto& it : wordFreqSortedVec) {
         wordRecord->set_word(it.first);
         wordRecord->set_word_index(wordIdxMap[it.first]);
@@ -108,10 +114,10 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
     }
     vocabShard.Flush();
     in.close();
-
 }
 
-void loadClusterForNonTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap, StrIntMap& wordClassIdxMap) {
+void loadClusterForNonTrainMode(const char *input, int nclass,
+     StrIntMap& wordIdxMap, StrIntMap& wordClassIdxMap) {
     // init
     wordIdxMap.clear();
     wordClassIdxMap.clear();
@@ -123,66 +129,62 @@ void loadClusterForNonTrainMode(const char *input, int nclass, StrIntMap& wordId
 
     // fill value into map
     while (vocabShard.Next(&key, &record)) {
-        singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
+        singa::SingleWordRecord *wordRecord =
+                record.MutableExtension(singa::singleword);
         wordIdxMap[wordRecord->word()] = wordRecord->word_index();
         wordClassIdxMap[wordRecord->word()] = wordRecord->class_index();
     }
-
 }
 
 void create_shard(const char *input, int nclass) {
-
     StrIntMap wordIdxMap, wordClassIdxMap;
-   
     if (-1 == nclass) {
         loadClusterForNonTrainMode(input, nclass, wordIdxMap, wordClassIdxMap);
     } else {
         doClusterForTrainMode(input, nclass, wordIdxMap, wordClassIdxMap);
     }
-
-   // generate word data
+    // generate word data
     // load input file
     std::ifstream in(input);
     CHECK(in) << "Unable to open file " << input;
-    DataShard wordShard("rnnlm_word_shard_"+std::string(strchr(input,'/')+1), DataShard::kCreate);
+    DataShard wordShard("rnnlm_word_shard_" + std::string(strchr(input, '/')+1),
+                        DataShard::kCreate);
     singa::Record record;
-    //record.set_type(singa::Record::kSingleWord);  // CLEE error
-    singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
+    // record.set_type(singa::Record::kSingleWord);  // CLEE error
+    singa::SingleWordRecord *wordRecord =
+            record.MutableExtension(singa::singleword);
     int wordStreamCnt = 0;
     const int kMaxKeyLength = 10;
     char key[kMaxKeyLength];
     std::string word;
-    //int cnt = 0;
     while (in >> word) {
-        // TODO (kaiping): do not forget here if modify tokenize logic
-        // TODO (kaiping): how to handle unknown word, just skip for now
+        // TODO(kaiping): do not forget here if modify tokenize logic
+        // TODO(kaiping): how to handle unknown word, just skip for now
         if (wordIdxMap.end() == wordIdxMap.find(word)) continue;
         wordRecord->set_word(word);
         wordRecord->set_word_index(wordIdxMap[word]);
         wordRecord->set_class_index(wordClassIdxMap[word]);
         snprintf(key, kMaxKeyLength, "%08d", wordIdxMap[word]);
         wordShard.Insert(std::string(key), record);
-        //cnt++;
     }
-    //LOG(ERROR) << wordShard.Count();
-    //LOG(ERROR) << "Count: " << cnt;
     wordShard.Flush();
-    //LOG(ERROR) << wordShard.Count();
     in.close();
 }
 
 int main(int argc, char **argv) {
     if (argc != 3) {
         std::cout << "This program create a DataShard for a RNNLM dataset\n"
-                "The RNNLM dataset could be downloaded at http://www.rnnlm.org/\n"
-                "You should gunzip them after downloading.\n"
-                "Usage:\n"
-                "    create_shard.bin [in_text_file] [class_size]\n"
-                "    class_size=-1 means test or validate mode, elsewise indicates train mode\n";
+            "The RNNLM dataset could be downloaded at http://www.rnnlm.org/\n"
+            "You should gunzip them after downloading.\n"
+            "Usage:\n"
+            "    create_shard.bin [in_text_file] [class_size]\n"
+            "    class_size=-1 means test or validate mode,"
+            " elsewise indicates train mode\n";
     } else {
         google::InitGoogleLogging(argv[0]);
         int classSize = atoi(argv[2]);
-        CHECK(classSize > 0 || -1 == classSize) << "class size parse failed. [" << argv[3] << "]";
+        CHECK(classSize > 0 || -1 == classSize) <<
+            "class size parse failed. [" << argv[3] << "]";
         create_shard(argv[1], classSize);
     }
     return 0;
