@@ -98,7 +98,7 @@ void doClusterForTrainMode(const char *input, int nclass, StrIntMap& wordIdxMap,
         classShard.Insert(std::string(key), record);
     }
     classShard.Flush();
-    record.clear_class_record();
+    record.ClearExtension(singa::wordclass);
 
     // generate vocabulary shard
     DataShard vocabShard("rnnlm_vocab_shard", DataShard::kCreate);
@@ -150,7 +150,7 @@ void create_shard(const char *input, int nclass) {
     DataShard wordShard("rnnlm_word_shard_" + std::string(strchr(input, '/')+1),
                         DataShard::kCreate);
     singa::Record record;
-    // record.set_type(singa::Record::kSingleWord);  // CLEE error
+    record.set_type(singa::Record::kSingleWordRecord);
     singa::SingleWordRecord *wordRecord =
             record.MutableExtension(singa::singleword);
     int wordStreamCnt = 0;

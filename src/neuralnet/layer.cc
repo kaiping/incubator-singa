@@ -758,7 +758,7 @@ void RnnlmWordparserLayer::ParseRecords(Phase phase,
     float *data_dptr = data_.mutable_cpu_data();
     for (int i = 0; i < records.size() - 1; i++) {  // First windowsize_ records
         // data_[i] = records[i].word_record().word_index();
-        data_dptr[i] = records[i].word_record().word_index();
+        data_dptr[i] = records[i].GetExtension(singleword).word_index();
     }
 }
 
@@ -778,8 +778,10 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase,
     // ->classinfo());
     int *class_info_ptr_tmp = (static_cast<RnnlmDataLayer*>
         (srclayers_[0])->classinfo())->mutable_cpu_data();
+    singa::SingleWordRecord swr;
     for (int i = 1; i < records.size(); i++) {  // Last windowsize_ records
-        int tmp_class_idx = records[i].word_record().class_index();
+        swr = records[i].GetExtension(singleword);
+        int tmp_class_idx = swr.class_index();
         // data_[i][0] = (*(static_cast<RnnlmDataLayer*>
         // (srclayers_[0])->classinfo()))[tmp_class_idx][0];
         data_dptr[4 * (i - 1) + 0] = class_info_ptr_tmp[2 * tmp_class_idx + 0];
@@ -787,7 +789,7 @@ void RnnlmClassparserLayer::ParseRecords(Phase phase,
         // (srclayers_[0])->classinfo()))[tmp_class_idx][1];
         data_dptr[4 * (i - 1) + 1] = class_info_ptr_tmp[2 * tmp_class_idx + 1];
         // data_[i][2] = records[i].word_record().word_index();
-        data_dptr[4 * (i - 1) + 2] = records[i].word_record().word_index();
+        data_dptr[4 * (i - 1) + 2] = swr.word_index();
         // data_[i][3] = tmp_class_idx;
         data_dptr[4 * (i - 1) + 3] = tmp_class_idx;
     }

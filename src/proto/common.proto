@@ -77,9 +77,9 @@ message Record {
     kSingleLabelImage = 0;
 	// For implementation of Recurrent Neural Network
 	// each class contains corresponding words in this class
-	kWordClass = 1;
+	kWordClassRecord = 1;
 	// each record contains string name, integer index and corresponding class index
-	kSingleWord = 2;
+	kSingleWordRecord = 2;
   }
   optional Type type = 1 [default = kSingleLabelImage];
   // configuration for
