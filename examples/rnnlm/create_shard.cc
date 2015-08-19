@@ -27,8 +27,8 @@ using singa::DataShard;
 using StrIntMap = std::map<std::string, int>;
 using StrIntPair = std::pair<std::string, int>;
 
-void doClusterForTrainMode(const char *input, int nclass, StrIntMap *wordIdxMapPtr,
-    StrIntMap *wordClassIdxMapPtr) {
+void doClusterForTrainMode(const char *input, int nclass,
+    StrIntMap *wordIdxMapPtr, StrIntMap *wordClassIdxMapPtr) {
     // init
     (*wordIdxMapPtr).clear();
     (*wordClassIdxMapPtr).clear();
@@ -138,7 +138,8 @@ void create_shard(const char *input, int nclass) {
     StrIntMap wordIdxMap;
     StrIntMap wordClassIdxMap;
     if (-1 == nclass) {
-        loadClusterForNonTrainMode(input, nclass, &wordIdxMap, &wordClassIdxMap);
+        loadClusterForNonTrainMode(input, nclass,
+            &wordIdxMap, &wordClassIdxMap);
     } else {
         doClusterForTrainMode(input, nclass, &wordIdxMap, &wordClassIdxMap);
     }
