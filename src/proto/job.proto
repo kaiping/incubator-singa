@@ -203,6 +203,11 @@ message LayerProto {
   optional int32 partition_id = 90 [default = 0];
 
   extensions 101 to 200;
+
+  // for NUH DPM problem - actually no need for special configuration
+  //optional DPMFeatureParserProto dpmfeatureparser_conf = 101;
+  //optional DPMLabelParserProto dpmlabelparser_conf = 102;
+  //optional DPMSoftmaxLossProto dpmsoftmaxloss_conf = 103;
 }
 
 // weight matrix should be defined before bias vector
@@ -539,6 +544,11 @@ enum LayerType {
 
   // Indicate the user defined layer. Users should configure user_type
   kUserLayer = 102;
+
+  // for NUH DPM problem - need to implement 3 new layers
+  kDPMFeatureParser = 103;
+  kDPMLabelParser = 104;
+  kDPMSoftmaxLoss = 105;
 }
 
 enum PartitionType {

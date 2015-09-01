@@ -81,8 +81,8 @@ message Record {
   // configuration for
   optional SingleLabelImageRecord image = 5;
   // for NUH DPM problem
-  optional DPMVectorRecord = 6;
-  optional DPMMultiVectorRecord = 7;
+  optional DPMVectorRecord dpm_vector_record = 6;
+  optional DPMMultiVectorRecord dpm_multi_vector_record = 7;
 }
 
 message SingleLabelImageRecord {
@@ -95,13 +95,13 @@ message SingleLabelImageRecord {
 // for NUH DPM problem
 message DPMVectorRecord {
   repeated float data = 1 [packed = true];
-  optional int32 dimension = 2; // here dimension should be 7899 as the total length for all 4 vectors
+  required int32 dimension = 2; // here dimension should be 7899 as the total length for all 4 vectors
   optional int32 type = 3;
   optional string key = 4;
 }
 
 message DPMMultiVectorRecord {
-  repeated VectorRecord vectors = 1;  // each vector corresponds to one time window
+  repeated DPMVectorRecord vectors = 1;  // each vector corresponds to one time window
   required float label = 2;  // the ground truth/label information for the patient
   optional int32 type = 3;
   optional string key = 4;

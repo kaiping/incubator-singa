@@ -382,7 +382,7 @@ void LabelLayer::ParseRecords(Phase phase, const vector<Record>& records,
     label[rid++]=record.image().label();
     //  CHECK_LT(record.image().label(),10);
   }
-  CHECK_EQ(rid, blob->shape()[0]);
+  CHECK_EQ(rid, blob->shape()[0]);  // rid should be batchsize
 }
 
 /***************** Implementation for LRNLayer *************************/
@@ -742,7 +742,7 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
   const float* probptr=prob.dptr;
   float loss=0, precision=0;
   for(int n=0;n<batchsize_;n++){
-    int ilabel=static_cast<int>(label[n]);
+    int ilabel=static_cast<int>(label[n]);  // appropriate ground truth/label value
     //  CHECK_LT(ilabel,10);
     CHECK_GE(ilabel,0);
     float prob_of_truth=probptr[ilabel];
@@ -761,7 +761,7 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
         break;
       }
     }
-    probptr+=dim_;
+    probptr+=dim_;  // change to the next row, corresponding to the next sample
   }
   CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
   perf->Add("loss", loss*scale_/(1.0f*batchsize_));
@@ -771,12 +771,12 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
 void SoftmaxLossLayer::ComputeGradient(Phase phase) {
   const float* label=srclayers_[1]->data(this).cpu_data();
   Blob<float>* gsrcblob=srclayers_[0]->mutable_grad(this);
-  gsrcblob->CopyFrom(data_);
+  gsrcblob->CopyFrom(data_);  // only copy value, for non-ground truth positions
   float* gsrcptr=gsrcblob->mutable_cpu_data();
   for(int n=0;n<batchsize_;n++){
     gsrcptr[n*dim_+static_cast<int>(label[n])]-=1.0f;
   }
-  Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));
+  Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));  // deal with all rows in the batch together
   gsrc*=scale_/(1.0f*batchsize_);
 }
 
