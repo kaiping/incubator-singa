@@ -70,11 +70,19 @@ message Record {
   enum Type {
     // each record contains image raw feature and its label.
     kSingleLabelImage = 0;
+    // for NUH DPM problem
+    // 1 Vector corresponds to one patient's info in one time window
+    kDPMVector = 1;
+    // 1 MultiVector corresponds to one patient's all info in all time windows
+    kDPMMultiVector = 2;
   }
   optional Type type = 1 [default = kSingleLabelImage];
   optional string user_type =2;
   // configuration for
   optional SingleLabelImageRecord image = 5;
+  // for NUH DPM problem
+  optional DPMVectorRecord = 6;
+  optional DPMMultiVectorRecord = 7;
 }
 
 message SingleLabelImageRecord {
@@ -82,6 +90,21 @@ message SingleLabelImageRecord {
   optional int32 label = 2;
   optional bytes pixel = 3;
   repeated float data = 4 [packed = true];
+}
+
+// for NUH DPM problem
+message DPMVectorRecord {
+  repeated float data = 1 [packed = true];
+  optional int32 dimension = 2; // here dimension should be 7899 as the total length for all 4 vectors
+  optional int32 type = 3;
+  optional string key = 4;
+}
+
+message DPMMultiVectorRecord {
+  repeated VectorRecord vectors = 1;  // each vector corresponds to one time window
+  required float label = 2;  // the ground truth/label information for the patient
+  optional int32 type = 3;
+  optional string key = 4;
 }
 
 message MetricProto {
