@@ -213,6 +213,18 @@ class LabelLayer: public ParserLayer {
       Blob<float>* blob) override;
 };
 
+
+// TODO(kaiping): Baseline 1 & 2, check later
+class DPMLabelParserLayer: public ParserLayer {
+ public:
+  using ParserLayer::ParseRecords;
+
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ParseRecords(Phase phase, const vector<Record>& records,
+      Blob<float>* blob) override;
+};
+
+
 class LRNLayer: public Layer {
 /**
  * Local Response Normalization edge
@@ -258,18 +270,17 @@ class MnistLayer: public ParserLayer {
   int resize_, elastic_freq_;
 };
 
-    // TODO(kaiping): Baseline 1 & 2, check later
-    class DPMFeatureParserLayer: public ParserLayer {
-     public:
-        using ParserLayer::ParseRecords;
-        void Setup(const LayerProto& proto, int npartitions) override;
-        void ParseRecords(Phase phase, const vector<Record>& records,
+// TODO(kaiping): Baseline 1 & 2, check later
+class DPMFeatureParserLayer: public ParserLayer {
+   public:
+     using ParserLayer::ParseRecords;
+     void Setup(const LayerProto& proto, int npartitions) override;
+     void ParseRecords(Phase phase, const vector<Record>& records,
                           Blob<float>* blob) override;
-
     protected:
         int feature_num_;
         int window_num_;
-    };
+};
 
 class PoolingLayer: public Layer {
  public:

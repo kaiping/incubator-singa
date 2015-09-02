@@ -371,7 +371,7 @@ void InnerProductLayer::ComputeGradient(Phase phas) {
 void LabelLayer::Setup(const LayerProto& proto, int npartitions){
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(),1);
-  int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
+  int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();  // batchsize() is a function of DataLayer
   data_.Reshape(vector<int>{batchsize});
 }
 
@@ -383,8 +383,29 @@ void LabelLayer::ParseRecords(Phase phase, const vector<Record>& records,
     label[rid++]=record.image().label();
     //  CHECK_LT(record.image().label(),10);
   }
-  CHECK_EQ(rid, blob->shape()[0]);  // rid should be batchsize
+  CHECK_EQ(rid, blob->shape()[0]);  // In the end, rid should be batchsize
 }
+
+
+// TODO(kaiping): Baseline 1 & 2, check later
+/******************** Implementation for DPMLabelParserLayer******************/
+void DPMLabelParserLayer::Setup(const LayerProto& proto, int npartitions){
+  Layer::Setup(proto, npartitions);
+  CHECK_EQ(srclayers_.size(),1);
+  int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();  // batchsize() is a function of DataLayer
+  data_.Reshape(vector<int>{batchsize});  // batchsize number of labels (corresponding to batchsize number of samples/patients)
+}
+
+void DPMLabelParserLayer::ParseRecords(Phase phase, const vector<Record>& records,
+                                  Blob<float>* blob){
+  int rid=0;
+  float *label= blob->mutable_cpu_data() ;
+  for(const Record& record: records){  // corresponding to a DPMMultiVectorRecord
+     label[rid++]=record.label();
+  }
+  CHECK_EQ(rid, blob->shape()[0]);  // In the end, rid should be batchsize
+}
+
 
 /***************** Implementation for LRNLayer *************************/
 void LRNLayer::Setup(const LayerProto& proto, int npartitions) {
@@ -503,20 +524,18 @@ void DPMFeatureParserLayer::ParseRecords(Phase phase,
          dptr[index] = records.at(i).vectors().Get(j).data().Get(k);  // for "repeated fields in Google Protobuf, use Get(index t) to retrieve one item"
       }
     }
-
   }
 }
 
-
-    void DPMFeatureParserLayer::Setup(const LayerProto &proto, int npartitions) {
-      Layer::Setup(proto, npartitions);
-      CHECK_EQ(srclayers_.size(),1);
-      int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
-      feature_num_ = proto.dpmfeatureparser_conf().feature_num();
-      window_num_ = proto.dpmfeatureparser_conf().window_num();
-      int totallength = feature_num_ * window_num_;
-      data_.Reshape(vector<int>{batchsize, totallength});
-    }
+void DPMFeatureParserLayer::Setup(const LayerProto &proto, int npartitions) {
+   Layer::Setup(proto, npartitions);
+   CHECK_EQ(srclayers_.size(),1);
+   int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
+   feature_num_ = proto.dpmfeatureparser_conf().feature_num();
+   window_num_ = proto.dpmfeatureparser_conf().window_num();
+   int totallength = feature_num_ * window_num_;
+   data_.Reshape(vector<int>{batchsize, totallength});
+}
 
 /******************** Implementation for PoolingLayer******************/
 void PoolingLayer::Setup(const LayerProto& proto, int npartitions) {
