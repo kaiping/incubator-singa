@@ -5,6 +5,7 @@
 #include "mshadow/cxxnet_op.h"
 #include "neuralnet/layer.h"
 #include "utils/singleton.h"
+#include "../../include/neuralnet/layer.h"
 
 using namespace mshadow;
 using namespace mshadow::expr;
@@ -466,7 +467,7 @@ void MnistLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(),1);
   int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
-  Record sample=static_cast<DataLayer*>(srclayers_[0])->sample();
+  Record sample=static_cast<DataLayer*>(srclayers_[0])->sample();  // TODO(kaiping):? not understand
   kernel_=proto.mnist_conf().kernel();
   sigma_=proto.mnist_conf().sigma();
   alpha_=proto.mnist_conf().alpha();
@@ -487,6 +488,35 @@ void MnistLayer::Setup(const LayerProto& proto, int npartitions) {
     data_.Reshape(vector<int>{batchsize, 1, s, s });
   }
 }
+
+
+// TODO(kaiping): Baseline 1 & 2, check later
+/******************** Implementation for DPMFeatureParserLayer******************/
+void DPMFeatureParserLayer::ParseRecords(Phase phase,
+                                  const vector<Record>& records, Blob<float>* blob){
+  LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
+  float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
+  for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
+    for(int j = 0; j < record.vectors().size(); j++) {  // for each window; the jth sub-vector
+      for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
+         int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
+         dptr[index] = records.at(i).vectors().Get(j).data().Get(k);  // for "repeated fields in Google Protobuf, use Get(index t) to retrieve one item"
+      }
+    }
+
+  }
+}
+
+
+    void DPMFeatureParserLayer::Setup(const LayerProto &proto, int npartitions) {
+      Layer::Setup(proto, npartitions);
+      CHECK_EQ(srclayers_.size(),1);
+      int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
+      feature_num_ = proto.dpmfeatureparser_conf().feature_num();
+      window_num_ = proto.dpmfeatureparser_conf().window_num();
+      int totallength = feature_num_ * window_num_;
+      data_.Reshape(vector<int>{batchsize, totallength});
+    }
 
 /******************** Implementation for PoolingLayer******************/
 void PoolingLayer::Setup(const LayerProto& proto, int npartitions) {
