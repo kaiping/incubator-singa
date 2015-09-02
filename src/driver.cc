@@ -46,6 +46,11 @@ void Driver::Init(int argc, char **argv) {
   RegisterLayer<TanhLayer, int>(kTanh);
   RegisterLayer<RBMVisLayer, int>(kRBMVis);
   RegisterLayer<RBMHidLayer, int>(kRBMHid);
+
+  // TODO(kaiping): Baseline 1 & 2, check later
+  RegisterLayer<DPMFeatureParser, int>(kDPMFeatureParser);
+  RegisterLayer<DPMLabelParser, int>(kDPMLabelParser);
+  
 #ifdef USE_LMDB
   RegisterLayer<LMDBDataLayer, int>(kLMDBData);
 #endif
