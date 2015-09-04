@@ -804,7 +804,7 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
         probvec.begin(), probvec.begin() + topk_,
         probvec.end(), std::greater<std::pair<float, int> >());
     // check if true label is in top k predictions
-    for (int k = 0; k < topk_; k++) {
+    for (int k = 0; k < topk_; k++) {  // In our case, topk = 1, limit to only 1 result
       if (probvec[k].second == static_cast<int>(label[n])) {
         precision++;
         break;

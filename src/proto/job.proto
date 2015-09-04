@@ -204,10 +204,9 @@ message LayerProto {
 
   extensions 101 to 200;
 
-  // for NUH DPM problem - actually no need for special configuration
-  //optional DPMFeatureParserProto dpmfeatureparser_conf = 101;
-  //optional DPMLabelParserProto dpmlabelparser_conf = 102;
-  //optional DPMSoftmaxLossProto dpmsoftmaxloss_conf = 103;
+  // TODO(kaiping): Baseline 1 & 2, check later
+  // for NUH DPM problem - for other layers: no need for special configuration
+  optional DPMFeatureParserProto dpmfeatureparser_conf = 101;
 }
 
 // weight matrix should be defined before bias vector
@@ -424,6 +423,13 @@ message RMSPropProto {
   required float rho = 1;
 }
 
+
+  // TODO(kaiping): Baseline 1 & 2, check later
+message DPMFeatureParserProto {
+  required int32 feature_num = 1;  // Need to specify the length of one feature for one patient
+  required int32 window_num = 2;  // Need to specify the number of features one patient has
+}
+
 message FixedStepProto {
   repeated int32 step = 28;
   // lr = step_lr[i] if current step >= step[i]
@@ -545,10 +551,10 @@ enum LayerType {
   // Indicate the user defined layer. Users should configure user_type
   kUserLayer = 102;
 
-  // for NUH DPM problem - need to implement 3 new layers
+  // TODO(kaiping): Baseline 1 & 2, check later
+  // for NUH DPM problem - need to implement 2 new layers
   kDPMFeatureParser = 103;
   kDPMLabelParser = 104;
-  kDPMSoftmaxLoss = 105;
 }
 
 enum PartitionType {
