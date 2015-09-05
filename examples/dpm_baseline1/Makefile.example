@@ -1,0 +1,13 @@
+libs :=singa glog protobuf
+
+
+dirshards = nuh_baseline1_train nuh_baseline1_valid nuh_baseline1_test
+
+.PHONY: create
+
+create:
+	$(CXX) create_shard.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include \
+		-L../../.libs/ -L/usr/local/lib -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
+		-o create_shard.bin
+	for d in $(dirshards); do mkdir -p $${d}; done
+	./create_shard.bin output.txt 1260 0 540

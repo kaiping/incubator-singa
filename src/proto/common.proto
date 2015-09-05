@@ -95,7 +95,7 @@ message SingleLabelImageRecord {
 // for NUH DPM problem
 message DPMVectorRecord {
   repeated float data = 1 [packed = true];
-  required int32 dimension = 2; // here dimension should be 7899 as the total length for all 4 vectors
+  optional int32 dimension = 2; // here dimension should be 7899 as the total length for all 4 vectors
   optional int32 type = 3;
   optional string key = 4;
 }
