@@ -206,7 +206,7 @@ message LayerProto {
 
   // TODO(kaiping): Baseline 1 & 2, check later
   // for NUH DPM problem - for other layers: no need for special configuration
-  optional DPMFeatureParserProto dpmfeatureparser_conf = 91;
+  optional DPMFeatureParserProto dpmfeatureparser_conf = 80;
 }
 
 // weight matrix should be defined before bias vector
@@ -553,8 +553,8 @@ enum LayerType {
 
   // TODO(kaiping): Baseline 1 & 2, check later
   // for NUH DPM problem - need to implement 2 new layers
-  kDPMFeatureParser = 103;
-  kDPMLabelParser = 104;
+  kDPMFeatureParser = 50;
+  kDPMLabelParser = 51;
 }
 
 enum PartitionType {
