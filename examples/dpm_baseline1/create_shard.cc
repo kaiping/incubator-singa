@@ -37,6 +37,7 @@ const float EPS = 1e-10;
 void readOneWindow(float *featureMatrix, const std::string &shardStr) {
     auto items = split(shardStr, ctrlC);
     for (int i = 0; i != items.size(); ++i) {
+        if ("" == items[i]) continue;
         auto tuple = split(items[i], ctrlD);
         CHECK(2 == tuple.size()) << "parse vector data failed.";  // add enough "CHECK"
         int idx = atoi(tuple[0].c_str());
@@ -121,17 +122,12 @@ int generateShardFile(float *featureMatrix, const std::string &filePath, int sha
 
     for (int i = offset; i < offset + shardSize; ++i) {  // for one patient, corresponding to one mvr
         // shardSize here refers to how many patients in train/valid/test shard; offset here can be seen as patient index
-        singa::DPMMultiVectorRecord mvr;  // TODO(kaiping) to change later
-        //singa::Record mvr;
-        //mvr.set_type(singa::Record::kDPMMultiVector);
+        singa::DPMMultiVectorRecord mvr;
         for (int j = 0; j < windowNum; ++j) {  // for one time window of one patient, corresponding to one singleVec
-            singa::DPMVectorRecord singleVec;  // TODO(kaiping) to change later
-            //singa::Record singleVec;
-            //singleVec.set_type(singa::Record::kDPMVector);
+            singa::DPMVectorRecord* singleVec = mvr.add_vectors();
             for (int k = 0; k < featureDim; ++k) {
-                singleVec.add_data((featureMatrix + i * patientWidth + j * featureDim)[k]);
+                singleVec->add_data((featureMatrix + i * patientWidth + j * featureDim)[k]);
             }
-            mvr.add_vectors(singleVec);
         }
         mvr.set_label(labelVec[i]);
         dataShard.Insert(nricVec[i].c_str(), mvr);
@@ -149,7 +145,6 @@ void createShard(const char *input, int trainSize, int validSize,
     // read number of patient
     int patientNum;
     in >> patientNum;
-
     // read number of shard for each patient
     int windowNum;
     in >> windowNum;
@@ -157,7 +152,6 @@ void createShard(const char *input, int trainSize, int validSize,
     // read dimension of features
     int featureDim;
     in >> featureDim;
-
     int sumSize = trainSize + validSize + testSize;  // this sumSize should be no more than patientNum
     CHECK(sumSize <= patientNum) << "no enough patients for generation";
 
@@ -166,8 +160,9 @@ void createShard(const char *input, int trainSize, int validSize,
     memset(featureMatrix, 0, sizeof(float) * patientNum * windowNum * featureDim);
     float *labelVec = new float[patientNum];
     std::string *nricVec = new std::string[patientNum];
+    std::string dataLine;
+    getline(in, dataLine);
     for (int i = 0; i < patientNum; ++i) {
-        std::string dataLine;
         getline(in, dataLine);
         readOnePatient(featureMatrix + i * windowNum * featureDim, windowNum, featureDim, dataLine,
                        nricVec + i, labelVec + i);
@@ -177,11 +172,11 @@ void createShard(const char *input, int trainSize, int validSize,
     normalizeFeature(featureMatrix, patientNum, windowNum, featureDim);
 
     int offset = 0;
-    offset += generateShardFile(featureMatrix, "train_shard", trainSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_train_shard", trainSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "valid_shard", validSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_valid_shard", validSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "test_shard", testSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_test_shard", testSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
 
     in.close();

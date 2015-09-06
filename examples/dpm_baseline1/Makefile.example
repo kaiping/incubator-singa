@@ -1,7 +1,7 @@
 libs :=singa glog protobuf
 
 
-dirshards = nuh_baseline1_train nuh_baseline1_valid nuh_baseline1_test
+dirshards = dpm_baseline1_train_shard dpm_baseline1_valid_shard dpm_baseline1_test_shard
 
 .PHONY: create
 
