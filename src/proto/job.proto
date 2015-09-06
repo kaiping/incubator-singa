@@ -206,7 +206,7 @@ message LayerProto {
 
   // TODO(kaiping): Baseline 1 & 2, check later
   // for NUH DPM problem - for other layers: no need for special configuration
-  optional DPMFeatureParserProto dpmfeatureparser_conf = 101;
+  optional DPMFeatureParserProto dpmfeatureparser_conf = 91;
 }
 
 // weight matrix should be defined before bias vector

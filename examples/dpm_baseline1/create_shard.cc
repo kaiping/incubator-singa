@@ -10,8 +10,8 @@
 #include <algorithm>
 
 #include "utils/data_shard.h"
-//#include "utils/common.h"
-//#include "proto/common.pb.h"
+#include "utils/common.h"
+#include "proto/common.pb.h"
 //#include "proto/user.pb.h"
 
 
@@ -121,9 +121,13 @@ int generateShardFile(float *featureMatrix, const std::string &filePath, int sha
 
     for (int i = offset; i < offset + shardSize; ++i) {  // for one patient, corresponding to one mvr
         // shardSize here refers to how many patients in train/valid/test shard; offset here can be seen as patient index
-        singa::DPMMultiVectorRecord mvr;
+        singa::DPMMultiVectorRecord mvr;  // TODO(kaiping) to change later
+        //singa::Record mvr;
+        //mvr.set_type(singa::Record::kDPMMultiVector);
         for (int j = 0; j < windowNum; ++j) {  // for one time window of one patient, corresponding to one singleVec
-            singa::DPMVectorRecord singleVec;
+            singa::DPMVectorRecord singleVec;  // TODO(kaiping) to change later
+            //singa::Record singleVec;
+            //singleVec.set_type(singa::Record::kDPMVector);
             for (int k = 0; k < featureDim; ++k) {
                 singleVec.add_data((featureMatrix + i * patientWidth + j * featureDim)[k]);
             }
