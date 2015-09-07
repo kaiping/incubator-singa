@@ -517,9 +517,15 @@ void DPMFeatureParserLayer::ParseRecords(Phase phase,
                                   const vector<Record>& records, Blob<float>* blob){
   LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
   float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
+  //LOG(ERROR) << "Feature Number: " << feature_num_;
+  //LOG(ERROR) << "Window Number: " << window_num_;
+  //LOG(ERROR) << "records size: " << records.size();
+  //LOG(ERROR) << "vectors size: " << records[0].dpm_multi_vector_record().vectors().size();
+  //LOG(ERROR) << "data size: " << records[0].dpm_multi_vector_record().vectors(0).data().size();
   for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
+    //LOG(ERROR) << "TEST!";
     //for(int j = 0; j < records.at(0).dpm_multi_vector_record().vectors().size(); j++) {  // for each window; the jth sub-vector; Here means # of windows
-    LOG(ERROR) << "test";
+    //LOG(ERROR) << "test";
     for(int j = 0; j < window_num_; j++) {
       for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
          int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
