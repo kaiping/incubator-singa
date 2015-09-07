@@ -519,10 +519,13 @@ void DPMFeatureParserLayer::ParseRecords(Phase phase,
   float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
   for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
     //for(int j = 0; j < records.at(0).dpm_multi_vector_record().vectors().size(); j++) {  // for each window; the jth sub-vector; Here means # of windows
+    LOG(ERROR) << "test";
     for(int j = 0; j < window_num_; j++) {
       for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
          int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
-         dptr[index] = records.at(i).dpm_multi_vector_record().vectors().Get(j).data().Get(k);  // for "repeated fields in Google Protobuf, use Get(index t) to retrieve one item"
+         //dptr[index] = records.at(i).dpm_multi_vector_record().vectors().Get(j).data().Get(k);  // for "repeated fields in Google Protobuf, use Get(index t) to retrieve one item"
+         //dptr[index] = records[i].dpm_multi_vector_record().vectors().Get(j).data().Get(k);
+         dptr[index] = records[i].dpm_multi_vector_record().vectors(j).data(k);
       }
     }
   }
