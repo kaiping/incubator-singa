@@ -394,6 +394,39 @@ class SoftmaxLossLayer: public LossLayer {
   int topk_;
 };
 
+// TODO(kaiping): Model 1, check later
+class DPMCombineSoftmaxLossLayer: public LossLayer {
+    /*
+    * connected from the label layer and the last fc layer
+    */
+public:
+    using Layer::ComputeFeature;
+    using Layer::ComputeGradient;
+
+    void Setup(const LayerProto& proto, int npartitions) override;
+    void ComputeFeature(Phase phase, Metric *perf) override;
+    void ComputeGradient(Phase phase) override;
+
+    /**
+     * softmax is not recommendeded for partition because it requires the whole
+     * src layer for normalization.
+     */
+    int partition_dim() const override {
+        CHECK_LE(layer_proto_.partition_dim(), 1);
+        return layer_proto_.partition_dim();
+    }
+    ConnectionType src_neuron_connection(int k) const override {
+        // CHECK_LT(k, srclayers_.size());
+        return kOneToAll;
+    }
+
+private:
+    int batchsize_;
+    int dim_;
+    //float scale_;
+    //int topk_;
+};
+
 class RGBImageLayer: public ParserLayer {
  public:
   using ParserLayer::ParseRecords;
