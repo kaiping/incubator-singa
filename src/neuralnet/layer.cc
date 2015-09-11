@@ -517,20 +517,10 @@ void DPMFeatureParserLayer::ParseRecords(Phase phase,
                                   const vector<Record>& records, Blob<float>* blob){
   LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
   float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
-  //LOG(ERROR) << "Feature Number: " << feature_num_;
-  //LOG(ERROR) << "Window Number: " << window_num_;
-  //LOG(ERROR) << "records size: " << records.size();
-  //LOG(ERROR) << "vectors size: " << records[0].dpm_multi_vector_record().vectors().size();
-  //LOG(ERROR) << "data size: " << records[0].dpm_multi_vector_record().vectors(0).data().size();
   for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
-    //LOG(ERROR) << "TEST!";
-    //for(int j = 0; j < records.at(0).dpm_multi_vector_record().vectors().size(); j++) {  // for each window; the jth sub-vector; Here means # of windows
-    //LOG(ERROR) << "test";
     for(int j = 0; j < window_num_; j++) {
       for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
          int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
-         //dptr[index] = records.at(i).dpm_multi_vector_record().vectors().Get(j).data().Get(k);  // for "repeated fields in Google Protobuf, use Get(index t) to retrieve one item"
-         //dptr[index] = records[i].dpm_multi_vector_record().vectors().Get(j).data().Get(k);
          dptr[index] = records[i].dpm_multi_vector_record().vectors(j).data(k);
       }
     }
@@ -546,6 +536,46 @@ void DPMFeatureParserLayer::Setup(const LayerProto &proto, int npartitions) {
    int totallength = feature_num_ * window_num_;
    data_.Reshape(vector<int>{batchsize, totallength});
 }
+
+
+// TODO(kaiping): Model 1, check later
+/******************** Implementation for DPMMultiDestFeatureParserLayer******************/
+void DPMMultiDestFeatureParserLayer::ParseRecords(Phase phase, const vector<Record>& records,
+            Blob<float>* blob) {
+   LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
+   float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
+   for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
+      for(int j = 0; j < window_num_; j++) {
+        for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
+          int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
+          dptr[index] = records[i].dpm_multi_vector_record().vectors(j).data(k);
+          int index_for_win = i * feature_num_ + k;
+          win1_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(0).data(k);  // corresponding to different subvectors
+          win2_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(1).data(k);
+          win3_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(2).data(k);
+        }
+      }
+   }
+}
+
+void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartitions) {
+   Layer::Setup(proto, npartitions);
+   CHECK_EQ(srclayers_.size(),1);
+   int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
+   feature_num_ = proto.dpmfeatureparser_conf().feature_num();
+   window_num_ = proto.dpmfeatureparser_conf().window_num();
+   int totallength = feature_num_ * window_num_;
+   // Not add separately
+   data_.Reshape(vector<int>{batchsize, totallength});
+   // Add separately
+   win1_data_.Reshape(vector<int>{batchsize, feature_num_});
+   win2_data_.Reshape(vector<int>{batchsize, feature_num_});
+   win3_data_.Reshape(vector<int>{batchsize, feature_num_});
+}
+
+
+
+
 
 /******************** Implementation for PoolingLayer******************/
 void PoolingLayer::Setup(const LayerProto& proto, int npartitions) {

@@ -282,6 +282,60 @@ class DPMFeatureParserLayer: public ParserLayer {
         int window_num_;
 };
 
+// TODO(kaiping): Model 1, check later
+class DPMMultiDestFeatureParserLayer: public ParserLayer {
+    public:
+        using ParserLayer::ParseRecords;
+        void Setup(const LayerProto& proto, int npartitions) override;
+        void ParseRecords(Phase phase, const vector<Record>& records,
+                          Blob<float>* blob) override;
+
+        Blob<float>* mutable_data(const Layer* from, Phase phase) {
+        // TODO(kaiping): check should use "virtual" or not?; "from" here is the dest layer of DPMMultiDestFeatureParser
+             if (from != nullptr){
+                //LOG(ERROR)<<"not nullptr";
+                if ( strcmp((from->name()).c_str(), "fc1_1_window1") == 0 )
+                    return &win1_data_;
+                else if ( strcmp ((from->name()).c_str(), "fc1_2_window2") == 0 )
+                    return &win2_data_;
+                else if ( strcmp((from->name()).c_str(), "fc1_3_window3") == 0 )
+                    return &win3_data_;
+                else{
+                    LOG(ERROR)<<"no mutable_data returned in the MultiSrcDatalayer return &data_";
+                    return &data_;
+                }
+             }
+            else{
+                LOG(ERROR)<<"nullptr";
+                return &data_;
+            }
+        }
+
+        const Blob<float>& data(const Layer* from, Phase phase) const {
+            if (from != nullptr){
+                //LOG(ERROR)<<"not nullptr";
+                if ( strcmp((from->name()).c_str(), "fc1_1_window1") == 0 )
+                    return win1_data_;
+                else if ( strcmp ((from->name()).c_str(), "fc1_2_window2") == 0 )
+                    return win2_data_;
+                else if ( strcmp((from->name()).c_str(), "fc1_3_window3") == 0 )
+                    return win3_data_;
+                else{
+                    //LOG(ERROR)<<"no data returned in the MultiSrcDatalayer return data_";
+                    return data_;
+                }
+            }
+            else{
+                LOG(ERROR)<<"nullptr";
+                return data_;
+            }
+        }
+protected:
+        int feature_num_;
+        int window_num_;
+        Blob<float> win1_data_, win2_data_, win3_data_;
+};
+
 class PoolingLayer: public Layer {
  public:
   using Layer::ComputeFeature;
