@@ -207,6 +207,9 @@ message LayerProto {
   // TODO(kaiping): Baseline 1 & 2, check later
   // for NUH DPM problem - for other layers: no need for special configuration
   optional DPMFeatureParserProto dpmfeatureparser_conf = 80;
+  // TODO(kaiping): Model 1, check later
+  optional DPMMultiDestFeatureParserProto dpm_multidest_featureparser_conf = 81;
+  // the DPMCombineSoftmaxLossLayer does not need special conf info now
 }
 
 // weight matrix should be defined before bias vector
@@ -424,10 +427,16 @@ message RMSPropProto {
 }
 
 
-  // TODO(kaiping): Baseline 1 & 2, check later
+ // TODO(kaiping): Baseline 1 & 2, check later
 message DPMFeatureParserProto {
   required int32 feature_num = 1;  // Need to specify the length of one feature for one patient
-  required int32 window_num = 2;  // Need to specify the number of features one patient has
+  required int32 window_num = 2;  // Need to specify the number of feature windows one patient has
+}
+
+ // TODO(kaiping): Model 1, check later
+message DPMMultiDestFeatureParserProto {
+  required int32 feature_num = 1;  // Need to specify the length of one feature for one patient
+  required int32 window_num = 2;  // Need to specify the number of feature windows one patient has
 }
 
 message FixedStepProto {
@@ -555,6 +564,10 @@ enum LayerType {
   // for NUH DPM problem - need to implement 2 new layers
   kDPMFeatureParser = 50;
   kDPMLabelParser = 51;
+
+  // TODO(kaiping): Model 1, check later
+  kDPMMultiDestFeatureParser = 52;
+  kDPMCombineSoftmaxLossLayer = 53;
 }
 
 enum PartitionType {
