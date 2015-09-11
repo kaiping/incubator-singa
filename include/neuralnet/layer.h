@@ -424,7 +424,8 @@ private:
     int batchsize_;
     int dim_;
     //float scale_;
-    //int topk_;
+    int topk_;
+    Blob<float> win1_softmax_, win2_softmax_, win3_softmax_;
 };
 
 class RGBImageLayer: public ParserLayer {

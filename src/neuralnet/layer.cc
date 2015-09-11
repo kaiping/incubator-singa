@@ -574,9 +574,6 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
 }
 
 
-
-
-
 /******************** Implementation for PoolingLayer******************/
 void PoolingLayer::Setup(const LayerProto& proto, int npartitions) {
   Layer::Setup(proto, npartitions);
@@ -826,7 +823,7 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
   Shape<2> s=Shape2(batchsize_, dim_);
   Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
   Tensor<cpu, 2> src(srclayers_[0]->mutable_data(this)->mutable_cpu_data(), s);
-  Softmax(prob, src);
+  Softmax(prob, src);  // prob is the destination
   const float* label=srclayers_[1]->data(this).cpu_data();
   const float* probptr=prob.dptr;
   float loss=0, precision=0;
@@ -868,5 +865,121 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));  // deal with all rows in the batch together
   gsrc*=scale_/(1.0f*batchsize_);
 }
+
+
+
+// TODO(kaiping): Model 1, check later
+/******************** Implementation for DPMCombineSoftmaxLossLayer******************/
+    void DPMCombineSoftmaxLossLayer::Setup(const LayerProto& proto, int npartitions) {
+      LossLayer::Setup(proto, npartitions);
+      CHECK_EQ(srclayers_.size(),4);  // 3 innerproduct layers and 1 label layer
+      data_.Reshape(srclayers_[0]->data(this).shape()); // win1, win2, win3, label
+      batchsize_=data_.shape()[0];
+      dim_=data_.count()/batchsize_;
+      topk_=proto.softmaxloss_conf().topk();
+      //metric_.Reshape(vector<int>{2});
+      //scale_=proto.softmaxloss_conf().scale();
+      win1_softmax_.Reshape(srclayers_[0]->data(this).shape());  // Reshape is like Initialization
+      win2_softmax_.Reshape(srclayers_[0]->data(this).shape());
+      win3_softmax_.Reshape(srclayers_[0]->data(this).shape());
+    }
+    void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
+      Shape<2> s=Shape2(batchsize_, dim_); // Softmax must use Tensor
+      //Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
+      Tensor<cpu, 2> prob_win1(win1_softmax_.mutable_cpu_data(), s);
+      //AllocSpace(prob_win1);
+      Tensor<cpu, 2> src_win1(srclayers_[0]->mutable_data(this)->mutable_cpu_data(), s);
+      Softmax(prob_win1, src_win1);
+
+      Tensor<cpu, 2> prob_win2(win2_softmax_.mutable_cpu_data(), s);
+      //AllocSpace(prob_win2);
+      Tensor<cpu, 2> src_win2(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
+      Softmax(prob_win2, src_win2);
+
+      Tensor<cpu, 2> prob_win3(win3_softmax_.mutable_cpu_data(), s);
+      //AllocSpace(prob_win3);
+      Tensor<cpu, 2> src_win3(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
+      Softmax(prob_win3, src_win3);
+
+      // TODO(kaiping): to check whether 2 Tensors can be added etc. element-wise
+      auto data = Tensor2(&data_);
+      data = (prob_win1 + prob_win2 + prob_win3) / 3.0;
+
+      const float* label=srclayers_[3]->data(this).cpu_data();
+      const float* probptr=data.dptr;
+      float loss=0, precision=0;
+      for(int n=0;n<batchsize_;n++){
+        int ilabel=static_cast<int>(label[n]);  // appropriate ground truth/label value
+        //  CHECK_LT(ilabel,10);
+        CHECK_GE(ilabel,0);
+        CHECK_LT(ilabel,5);
+        float prob_of_truth=probptr[ilabel];  // the probability of the ground truth, used in loss function
+        loss-=log(std::max(prob_of_truth, FLT_MIN));
+        vector<std::pair<float, int> > probvec;
+        for (int j = 0; j < dim_; ++j) {
+          probvec.push_back(std::make_pair(probptr[j], j));
+        }
+        std::partial_sort(
+                probvec.begin(), probvec.begin() + topk_,
+                probvec.end(), std::greater<std::pair<float, int> >());
+        // check if true label is in top k predictions
+        for (int k = 0; k < topk_; k++) {  // In our case, topk = 1, limit to only 1 result
+          if (probvec[k].second == static_cast<int>(label[n])) {  // label[n] is the ground truth, means this is correct
+            precision++;
+            break;
+          }
+        }
+        probptr+=dim_;  // change to the next row, corresponding to the next sample
+      }
+      CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
+      perf->Add("loss", loss*scale_/(1.0f*batchsize_));
+      perf->Add("accuracy", precision*scale_/(1.0f*batchsize_));
+
+      //FreeSpace(prob_win1);
+      //FreeSpace(prob_win2);
+      //FreeSpace(prob_win3);
+    }
+
+    void SoftmaxLossLayer::ComputeGradient(Phase phase) {
+      const float* label=srclayers_[3]->data(this).cpu_data();
+      float* softmax1 = win1_softmax_.mutable_cpu_data();
+      float* softmax2 = win2_softmax_.mutable_cpu_data();
+      float* softmax3 = win3_softmax_.mutable_cpu_data();
+      float* datainfo = data_.mutable_cpu_data();
+
+      Blob<float>* gsrcblob_1=srclayers_[0]->mutable_grad(this);
+      Blob<float>* gsrcblob_2=srclayers_[1]->mutable_grad(this);
+      Blob<float>* gsrcblob_3=srclayers_[2]->mutable_grad(this);
+
+      gsrcblob_1->CopyFrom(srclayers_[0]->data(this));
+      gsrcblob_2->CopyFrom(srclayers_[1]->data(this));
+      gsrcblob_3->CopyFrom(srclayers_[2]->data(this));
+
+      float* gsrcptr_1=gsrcblob_1->mutable_cpu_data();
+      float* gsrcptr_2=gsrcblob_2->mutable_cpu_data();
+      float* gsrcptr_3=gsrcblob_3->mutable_cpu_data();
+
+      for(int n=0;n<batchsize_;n++){
+        gsrcptr_1[n*dim_+static_cast<int>(label[n])]-=1.0f; // for the ground truth's position
+        gsrcptr_2[n*dim_+static_cast<int>(label[n])]-=1.0f;
+        gsrcptr_3[n*dim_+static_cast<int>(label[n])]-=1.0f;
+      }
+
+      for(int n = 0;n < batchsize_;n++){
+        for(int idx = 0;idx < dim_; idx++){
+            gsrcptr_1[n * dim_ + idx] * softmax1[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_2[n * dim_ + idx] * softmax2[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_3[n * dim_ + idx] * softmax3[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+        }
+      }
+
+      Tensor<cpu, 1> gsrc1(gsrcptr_1, Shape1(gsrcblob_1->count()));  // deal with all rows in the batch together
+      gsrc1*=scale_/(1.0f*batchsize_);
+      Tensor<cpu, 1> gsrc2(gsrcptr_2, Shape1(gsrcblob_2->count()));  // deal with all rows in the batch together
+      gsrc2*=scale_/(1.0f*batchsize_);
+      Tensor<cpu, 1> gsrc3(gsrcptr_3, Shape1(gsrcblob_3->count()));  // deal with all rows in the batch together
+      gsrc3*=scale_/(1.0f*batchsize_);
+    }
+
 
 }  // namespace singa
