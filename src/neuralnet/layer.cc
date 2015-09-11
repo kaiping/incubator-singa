@@ -863,7 +863,7 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
     gsrcptr[n*dim_+static_cast<int>(label[n])]-=1.0f;
   }
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));  // deal with all rows in the batch together
-  gsrc*=scale_/(1.0f*batchsize_);
+  gsrc*=scale_/(1.0f*batchsize_);  // TODO(kaiping): why need this?
 }
 
 
@@ -886,17 +886,20 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
     void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
       Shape<2> s=Shape2(batchsize_, dim_); // Softmax must use Tensor
       //Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
-      Tensor<cpu, 2> prob_win1(win1_softmax_.mutable_cpu_data(), s);
+      //Tensor<cpu, 2> prob_win1(win1_softmax_.mutable_cpu_data(), s);
+        auto prob_win1 = Tensor2(&win1_softmax_);
       //AllocSpace(prob_win1);
       Tensor<cpu, 2> src_win1(srclayers_[0]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win1, src_win1);
 
-      Tensor<cpu, 2> prob_win2(win2_softmax_.mutable_cpu_data(), s);
+      //Tensor<cpu, 2> prob_win2(win2_softmax_.mutable_cpu_data(), s);
+        auto prob_win2 = Tensor2(&win2_softmax_);
       //AllocSpace(prob_win2);
       Tensor<cpu, 2> src_win2(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win2, src_win2);
 
-      Tensor<cpu, 2> prob_win3(win3_softmax_.mutable_cpu_data(), s);
+      //Tensor<cpu, 2> prob_win3(win3_softmax_.mutable_cpu_data(), s);
+        auto prob_win3 = Tensor2(&win3_softmax_);
       //AllocSpace(prob_win3);
       Tensor<cpu, 2> src_win3(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win3, src_win3);
@@ -967,14 +970,14 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
 
       for(int n = 0;n < batchsize_;n++){
         for(int idx = 0;idx < dim_; idx++){
-            gsrcptr_1[n * dim_ + idx] * softmax1[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
-            gsrcptr_2[n * dim_ + idx] * softmax2[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
-            gsrcptr_3[n * dim_ + idx] * softmax3[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_1[n * dim_ + idx] = gsrcptr_1[n * dim_ + idx] * softmax1[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_2[n * dim_ + idx] = gsrcptr_2[n * dim_ + idx] * softmax2[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_3[n * dim_ + idx] = gsrcptr_3[n * dim_ + idx] * softmax3[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
         }
       }
 
       Tensor<cpu, 1> gsrc1(gsrcptr_1, Shape1(gsrcblob_1->count()));  // deal with all rows in the batch together
-      gsrc1*=scale_/(1.0f*batchsize_);
+      gsrc1*=scale_/(1.0f*batchsize_);  // TODO(kaiping): why need this?
       Tensor<cpu, 1> gsrc2(gsrcptr_2, Shape1(gsrcblob_2->count()));  // deal with all rows in the batch together
       gsrc2*=scale_/(1.0f*batchsize_);
       Tensor<cpu, 1> gsrc3(gsrcptr_3, Shape1(gsrcblob_3->count()));  // deal with all rows in the batch together
