@@ -1,12 +1,24 @@
 #include "singa.h"
 namespace singa {
 
+/**
+ * Base RNN layer. May make it a base layer of SINGA.
+ */
 class RNNLayer : public NeuronLayer {
  public:
+  /**
+   * The recurrent layers may be unrolled different times for different
+   * iterations, depending on the applications. For example, the ending word
+   * of a sentence may stop the unrolling; unrolling also stops when the max
+   * window size is reached. Every layer must reset window_ in its
+   * ComputeFeature function.
+   *
+   * @return the effective BPTT length, which is <= max_window.
+   */
   inline int window() { return window_; }
 
  protected:
-  //!< effect window size for bptt
+  //!< effect window size for BPTT
   int window_;
 };
 
@@ -35,7 +47,7 @@ class EmbeddingLayer : public RNNLayer {
 
 
 /**
- * hid[t]=sigmoid(hid[t-1]*W+src[t])
+ * hid[t] = sigmoid(hid[t-1] * W + src[t])
  */
 class HiddenLayer : public RNNLayer {
  public:
@@ -54,9 +66,9 @@ class HiddenLayer : public RNNLayer {
 };
 
 /**
- * p(word at t is from class c)=softmax(src[t]*Wc)[c]
- * p(w|c)=softmax(src[t]*Ww[Start(c):End(c)])
- * p(word at t is w)=p(from class c)*p(w|c)
+ * p(word at t+1 is from class c) = softmax(src[t]*Wc)[c]
+ * p(w|c) = softmax(src[t]*Ww[Start(c):End(c)])
+ * p(word at t+1 is w)=p(word at t+1 is from class c)*p(w|c)
  */
 class OutputLayer : public RNNLayer {
  public:

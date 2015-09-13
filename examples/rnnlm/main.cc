@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   int resume_pos = singa::ArgPos(argc, argv, "-resume");
   bool resume = (resume_pos != -1);
 
-  //please register the HiddenLayer here
+  //  register all layers for rnnlm
   driver.RegisterLayer<singa::EmbeddingLayer, std::string>("kEmbedding");
   driver.RegisterLayer<singa::HiddenLayer, std::string>("kHidden");
   driver.RegisterLayer<singa::OutputLayer, std::string>("kOutput");

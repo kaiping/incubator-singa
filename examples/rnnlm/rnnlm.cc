@@ -25,8 +25,7 @@ inline Tensor<cpu, 1> RTensor1(Blob<float>* blob) {
   return tensor;
 }
 
-
-/***********  Implementing layers used in RNNLM application ***********/
+/*******EmbeddingLayer**************/
 EmbeddingLayer::~EmbeddingLayer() {
   delete embed_;
 }
@@ -67,7 +66,7 @@ void EmbeddingLayer::ComputeGradient(int flag, Metric* perf) {
     Copy(gembed[idx], grad[t]);
   }
 }
-/*********** 2-Implementation for HiddenLayer **********/
+/***********HiddenLayer**********/
 HiddenLayer::~HiddenLayer() {
   delete weight_;
 }
@@ -83,6 +82,7 @@ void HiddenLayer::Setup(const LayerProto& proto, int npartitions) {
   weight_->Setup(std::vector<int>{word_dim, word_dim});
 }
 
+// hid[t] = sigmoid(hid[t-1] * W + src[t])
 void HiddenLayer::ComputeFeature(int flag, Metric* perf) {
   window_ = static_cast<RNNLayer*>(srclayers_[0])->window();
   auto data = RTensor2(&data_);
@@ -107,6 +107,7 @@ void HiddenLayer::ComputeGradient(int flag, Metric* perf) {
   auto gsrc = RTensor2(srclayers_[0]->mutable_grad(this));
   gweight = 0;
   TensorContainer<cpu, 1> tmp(Shape1(data_.shape()[1]));
+  // Check!!
   for (int t = window_ - 1; t >= 0; t--) {
     if (t < window_ - 1) {
       tmp = dot(grad[t + 1], weight.T());
@@ -170,7 +171,7 @@ void OutputLayer::ComputeFeature(int flag, Metric* perf) {
   }
 
   perf->Add("loss", loss, window_);
-  perf->Add("ppl", ppl, window_);
+  perf->Add("ppl before exp", ppl, window_);
 }
 
 void OutputLayer::ComputeGradient(int flag, Metric* perf) {
@@ -182,6 +183,8 @@ void OutputLayer::ComputeGradient(int flag, Metric* perf) {
   auto class_weight = RTensor2(class_weight_->mutable_data());
   auto gclass_weight = RTensor2(class_weight_->mutable_grad());
   const float * label = srclayers_[1]->data(this).cpu_data();
+  gclass_weight = 0;
+  gword_weight = 0;
   for (int t = 0; t < window_; t++) {
     int start = static_cast<int>(label[t * 4 + 0]);
     int end = static_cast<int>(label[t * 4 + 1]);
@@ -189,10 +192,14 @@ void OutputLayer::ComputeGradient(int flag, Metric* perf) {
     int cid = static_cast<int>(label[t * 4 + 3]);
     auto pword = RTensor1(&pword_[t]);
 
+    // gL/gclass_act
     pclass[t][cid] -= 1.0;
+    // gL/gword_act
     pword[wid] -= 1.0;
 
+    // gL/gword_weight
     gword_weight.Slice(start, end) += dot(pword.FlatTo2D().T(), src[t].FlatTo2D());
+    // gL/gclass_weight
     gclass_weight += dot(pclass[t].FlatTo2D().T(), src[t].FlatTo2D());
 
     gsrc[t] = dot(pword, word_weight.Slice(start, end));
