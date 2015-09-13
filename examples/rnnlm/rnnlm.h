@@ -46,6 +46,19 @@ class RnnDataLayer : public RNNLayer {
 
 
 /**
+ * Word parser layer that read records_[0] to records_[window_ - 1] from RnnDataLayer
+ */
+class WordParserLayer : public RNNLayer {
+};
+
+/**
+ * class parser layer that read records_[1] to records_[window_] from RnnDataLayer
+ */
+class ClassParserLayer : public RNNLayer {
+};
+
+
+/**
  * Word embedding layer that get one row from the embedding matrix for each
  * word based on the word index
  */
