@@ -23,6 +23,23 @@ class RNNLayer : public NeuronLayer {
 };
 
 /**
+ * Input layer that get read records from data shard
+ */
+class InputLayer : public RNNLayer {
+ public:
+  ~InputLayer();
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(int flag, Metric *perf) override;
+  int max_window() const {
+    return max_window;
+  }
+ private:
+  int max_window_;
+  DataShard* shard_;
+};
+
+
+/**
  * Word embedding layer that get one row from the embedding matrix for each
  * word based on the word index
  */

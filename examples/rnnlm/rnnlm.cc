@@ -25,6 +25,44 @@ inline Tensor<cpu, 1> RTensor1(Blob<float>* blob) {
   return tensor;
 }
 
+
+/*******InputLayer**************/
+InputLayer::~InputLayer() {
+  if (shard_ != nullptr)
+    delete shard_;
+  shard_ = nullptr;
+}
+
+void InputLayer::Setup(const LayerProto& proto, int npartitions) {
+  Layer::Setup(proto, npartitions);
+  shard_ = new DataShard(proto.GetExtension(input_conf).path(), DataShard::kRead);
+  string key;
+  max_window_ = proto.GetExtension(input_conf).max_window();
+  records_.resize(max_window_ + 1);  // # of records in data layer is max_window_ + 1
+  shard_->Next(&key, &records_[max_window_]);
+}
+
+void InputLayer::ComputeFeature(int flag, Metric *perf) {
+  CHECK(records_.size() <= shard_->Count());
+  records_[0] = records_[max_window_];
+  singa::WordRecord wr;
+  window_ = max_window_;
+  for (int i = 1; i < max_window_; i++) {
+    string key;
+    if (shard_->Next(&key, &records_[i])) {
+      wr = records_[i].GetExtension(word_record);
+      if(wr.word_index() == 0) {
+        window_ = i;
+        break;
+      }
+    }
+    else{
+      shard_->SeekToFirst();
+      CHECK(shard_->Next(&key, &record));
+    }
+  }
+}
+
 /*******EmbeddingLayer**************/
 EmbeddingLayer::~EmbeddingLayer() {
   delete embed_;
