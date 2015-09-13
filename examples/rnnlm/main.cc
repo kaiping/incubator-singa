@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
   driver.RegisterLayer<singa::HiddenLayer, std::string>("kHidden");
   driver.RegisterLayer<singa::OutputLayer, std::string>("kOutput");
   driver.RegisterLayer<singa::RnnDataLayer, std::string>("kRnnData");
-  driver.RegisterLayer<singa::WordParserLayer, std::string>("kWordParser");
-  driver.RegisterLayer<singa::ClassParserLayer, std::string>("kClassParser");
+  driver.RegisterLayer<singa::WordParserLayer, std::string>("kWord");
+  driver.RegisterLayer<singa::ClassParserLayer, std::string>("kLabel");
 
   singa::JobProto jobConf = driver.job_conf();
 

@@ -31,7 +31,7 @@ class RnnDataLayer : public RNNLayer {
   void Setup(const LayerProto& proto, int npartitions) override;
   void ComputeFeature(int flag, Metric *perf) override;
   int max_window() const {
-    return max_window;
+    return max_window_;
   }
 
   const std::vector<WordRecord>& records() const {
@@ -46,15 +46,22 @@ class RnnDataLayer : public RNNLayer {
 
 
 /**
- * Word parser layer that read records_[0] to records_[window_ - 1] from RnnDataLayer
+ * WordLayer that read records_[0] to records_[window_ - 1] from RnnDataLayer to offer data for computation
  */
-class WordParserLayer : public RNNLayer {
+class WordLayer : public RNNLayer {
+ public:
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(int flag, Metric *perf) override;
 };
 
+
 /**
- * class parser layer that read records_[1] to records_[window_] from RnnDataLayer
+ * LabelLayer that read records_[1] to records_[window_] from RnnDataLayer to offer label information
  */
-class ClassParserLayer : public RNNLayer {
+class LabelLayer : public RNNLayer {
+ public:
+  void Setup(const LayerProto& proto, int npartitions) override;
+  void ComputeFeature(int flag, Metric *perf) override;
 };
 
 

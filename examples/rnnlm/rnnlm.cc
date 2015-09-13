@@ -63,6 +63,44 @@ void RnnDataLayer::ComputeFeature(int flag, Metric *perf) {
   }
 }
 
+/*******WordLayer**************/
+void WordLayer::Setup(const LayerProto& proto, int npartitions) {
+  Layer::Setup(proto, npartitions);
+  CHECK_EQ(srclayers_.size(), 1);
+  int max_window = static_cast<RnnlmDataLayer*>(srclayers_[0])->max_window();
+  data_.Reshape(vector<int>{max_window});
+}
+
+void WordLayer::ComputeFeature(int flag, Metric *perf) {
+  auto records = static_cast<RnnlmDataLayer*>(srclayers_[0])->records();
+  float *word = data_.mutable_cpu_data();
+  window_ = static_cast<RNNLayer*>(srclayers_[0])->window();
+  for(int i = 0; i < window_; i++) {
+    word[i] = records[i].word_index();
+  }
+}
+
+
+/*******LabelLayer**************/
+void LabelLayer::Setup(const LayerProto& proto, int npartitions) {
+  Layer::Setup(proto, npartitions);
+  CHECK_EQ(srclayers_.size(), 1);
+  int max_window = static_cast<RnnlmDataLayer*>(srclayers_[0])->max_window();
+  data_.Reshape(vector<int>{max_window, 4});
+}
+
+void LabelLayer::ComputeFeature(int flag, Metric *perf) {
+  auto records = static_cast<RnnlmDataLayer*>(srclayers_[0])->records();
+  float *label = data_.mutable_cpu_data();
+  window_ = static_cast<RNNLayer*>(srclayers_[0])->window();
+  for (int i = 0; i < window_; i++) {
+    label[4 * i + 0] = records[i + 1].class_start();
+    label[4 * i + 1] = records[i + 1].class_end();
+    label[4 * i + 2] = records[i + 1].word_index();
+    label[4 * i + 3] = records[i + 1].class_index();
+  }
+}
+
 /*******EmbeddingLayer**************/
 EmbeddingLayer::~EmbeddingLayer() {
   delete embed_;
