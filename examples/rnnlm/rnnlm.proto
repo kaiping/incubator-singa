@@ -31,7 +31,3 @@ message WordRecord {
   optional int32 class_start = 4;
   optional int32 class_end = 5;
 }
-
-extend Record {
-  optional WordRecord word_record = 101;
-}

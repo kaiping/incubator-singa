@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   driver.RegisterLayer<singa::EmbeddingLayer, std::string>("kEmbedding");
   driver.RegisterLayer<singa::HiddenLayer, std::string>("kHidden");
   driver.RegisterLayer<singa::OutputLayer, std::string>("kOutput");
-  driver.RegisterLayer<singa::InputLayer, std::string>("kInput");
+  driver.RegisterLayer<singa::RnnDataLayer, std::string>("kRnnData");
 
   singa::JobProto jobConf = driver.job_conf();
 

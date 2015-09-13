@@ -25,17 +25,23 @@ class RNNLayer : public NeuronLayer {
 /**
  * Input layer that get read records from data shard
  */
-class InputLayer : public RNNLayer {
+class RnnDataLayer : public RNNLayer {
  public:
-  ~InputLayer();
+  ~RnnDataLayer();
   void Setup(const LayerProto& proto, int npartitions) override;
   void ComputeFeature(int flag, Metric *perf) override;
   int max_window() const {
     return max_window;
   }
+
+  const std::vector<WordRecord>& records() const {
+    return records_;
+  }
+
  private:
   int max_window_;
   DataShard* shard_;
+  std::vector<WordRecord> records_;
 };
 
 
