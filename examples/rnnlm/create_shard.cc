@@ -198,8 +198,6 @@ int splitClasses() {
     memset(class_start, 0x7f, sizeof(int) * class_size);
     class_end = (int *) calloc(class_size, sizeof(int));
     memset(class_end, 0, sizeof(int) * class_size);
-    class_start[0] = 0;
-    class_end[0] = 1;
 
     if (old_classes) {    // old classes
         for (i = 0; i < vocab_size; i++) b += vocab[i].cn;
@@ -211,8 +209,6 @@ int splitClasses() {
                 if (a < class_size - 1) a++;
             } else {
                 vocab[i].class_index = a;
-                class_start[a] = min(i, class_start[a]);
-                class_end[a] = max(i + 1, class_end[a]);
             }
         }
     } else {            // new classes
@@ -226,10 +222,15 @@ int splitClasses() {
                 if (a < class_size - 1) a++;
             } else {
                 vocab[i].class_index = a;
-                class_start[a] = min(i, class_start[a]);
-                class_end[a] = max(i + 1, class_end[a]);
             }
         }
+    }
+
+    // after dividing classes, update class start and class end information
+    for(i = 0; i < vocab_size; i++)  {
+        a = vocab[i].class_index;
+        class_start[a] = min(i, class_start[a]);
+        class_end[a] = max(i + 1, class_end[a]);
     }
     return 0;
 }
@@ -254,9 +255,7 @@ int init_class() {
 
 int create_shard(char *input_file, char *output_file) {
     DataShard dataShard(output_file, DataShard::kCreate);
-    singa::Record record;
-    record.set_type(singa::Record::kSingleWordRecord);
-    singa::SingleWordRecord *wordRecord = record.MutableExtension(singa::singleword);
+    singa::WordRecord wordRecord;
 
     char word[MAX_STRING];
     FILE *fin;
@@ -269,13 +268,13 @@ int create_shard(char *input_file, char *output_file) {
         if (i == -1) {
             if (debug_mode) printf("unknown word [%s] detected!", word);
         } else {
-            wordRecord->set_word(string(word));
-            wordRecord->set_word_index(i);
+            wordRecord.set_word(string(word));
+            wordRecord.set_word_index(i);
             int class_idx = vocab[i].class_index;
-            wordRecord->set_class_index(class_idx);
-            wordRecord->set_class_start(class_start[class_idx]);
-            wordRecord->set_class_end(class_end[class_idx]);
-            dataShard.Insert(word, record);
+            wordRecord.set_class_index(class_idx);
+            wordRecord.set_class_start(class_start[class_idx]);
+            wordRecord.set_class_end(class_end[class_idx]);
+            dataShard.Insert(word, wordRecord);
         }
     }
 
