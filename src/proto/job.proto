@@ -210,6 +210,7 @@ message LayerProto {
   // TODO(kaiping): Model 1, check later
   optional DPMMultiDestFeatureParserProto dpm_multidest_featureparser_conf = 81;
   // the DPMCombineSoftmaxLossLayer does not need special conf info now
+  optional DPMCombineSoftmaxLossProto dpm_combine_softmaxloss_conf = 82;
 }
 
 // weight matrix should be defined before bias vector
@@ -439,6 +440,13 @@ message DPMMultiDestFeatureParserProto {
   required int32 window_num = 2;  // Need to specify the number of feature windows one patient has
 }
 
+message DPMCombineSoftmaxLossProto {
+  // computing accuracy against topk results
+  optional int32 topk = 1 [default = 1];
+  // loss scale factor
+  optional float scale = 30 [default = 1];
+}
+
 message FixedStepProto {
   repeated int32 step = 28;
   // lr = step_lr[i] if current step >= step[i]
@@ -567,7 +575,7 @@ enum LayerType {
 
   // TODO(kaiping): Model 1, check later
   kDPMMultiDestFeatureParser = 52;
-  kDPMCombineSoftmaxLossLayer = 53;
+  kDPMCombineSoftmaxLoss = 53;
 }
 
 enum PartitionType {

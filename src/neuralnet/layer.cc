@@ -931,7 +931,7 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
         }
         probptr+=dim_;  // change to the next row, corresponding to the next sample
       }
-      CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
+      CHECK_EQ(probptr, data.dptr+data.shape.Size());
       perf->Add("loss", loss*scale_/(1.0f*batchsize_));
       perf->Add("accuracy", precision*scale_/(1.0f*batchsize_));
     }
