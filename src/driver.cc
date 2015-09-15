@@ -50,6 +50,10 @@ void Driver::Init(int argc, char **argv) {
   // TODO(kaiping): Baseline 1 & 2, check later
   RegisterLayer<DPMFeatureParserLayer, int>(kDPMFeatureParser);
   RegisterLayer<DPMLabelParserLayer, int>(kDPMLabelParser);
+
+  //  TODO(kaiping): Model 1. check later
+  RegisterLayer<DPMMultiDestFeatureParserLayer, int>(kDPMMultiDestFeatureParser);
+  RegisterLayer<DPMCombineSoftmaxLossLayer, int>(kDPMCombineSoftmaxLoss);
   
 #ifdef USE_LMDB
   RegisterLayer<LMDBDataLayer, int>(kLMDBData);

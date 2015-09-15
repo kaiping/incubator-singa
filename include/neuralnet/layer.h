@@ -294,11 +294,11 @@ class DPMMultiDestFeatureParserLayer: public ParserLayer {
         // TODO(kaiping): check should use "virtual" or not?; "from" here is the dest layer of DPMMultiDestFeatureParser
              if (from != nullptr){
                 //LOG(ERROR)<<"not nullptr";
-                if ( strcmp((from->name()).c_str(), "fc1_1_window1") == 0 )
+                if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
                     return &win1_data_;
-                else if ( strcmp ((from->name()).c_str(), "fc1_2_window2") == 0 )
+                else if ( strcmp ((from->name()).c_str(), "fc1_window2") == 0 )
                     return &win2_data_;
-                else if ( strcmp((from->name()).c_str(), "fc1_3_window3") == 0 )
+                else if ( strcmp((from->name()).c_str(), "fc1_window3") == 0 )
                     return &win3_data_;
                 else{
                     LOG(ERROR)<<"no mutable_data returned in the MultiSrcDatalayer return &data_";
@@ -321,7 +321,7 @@ class DPMMultiDestFeatureParserLayer: public ParserLayer {
                 else if ( strcmp((from->name()).c_str(), "fc1_3_window3") == 0 )
                     return win3_data_;
                 else{
-                    //LOG(ERROR)<<"no data returned in the MultiSrcDatalayer return data_";
+                    LOG(ERROR)<<"no data returned in the MultiSrcDatalayer, return data_";
                     return data_;
                 }
             }
@@ -423,9 +423,9 @@ public:
 private:
     int batchsize_;
     int dim_;
-    //float scale_;
+    float scale_;  // can just use the default value
     int topk_;
-    Blob<float> win1_softmax_, win2_softmax_, win3_softmax_;
+    Blob<float> win1_softmax_, win2_softmax_, win3_softmax_;  // these 3 blobs are used to store the results after softmax
 };
 
 class RGBImageLayer: public ParserLayer {

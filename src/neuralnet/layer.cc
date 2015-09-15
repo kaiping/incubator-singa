@@ -544,15 +544,18 @@ void DPMMultiDestFeatureParserLayer::ParseRecords(Phase phase, const vector<Reco
             Blob<float>* blob) {
    LOG_IF(ERROR, records.size()==0)<<"Empty records to parse";
    float* dptr=blob->mutable_cpu_data();  // for assigning proper values to blob, i.e., data_
+   float* win1_dptr=win1_data_.mutable_cpu_data();
+   float* win2_dptr=win2_data_.mutable_cpu_data();
+   float* win3_dptr=win3_data_.mutable_cpu_data();
    for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
       for(int j = 0; j < window_num_; j++) {
         for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
           int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
           dptr[index] = records[i].dpm_multi_vector_record().vectors(j).data(k);
           int index_for_win = i * feature_num_ + k;
-          win1_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(0).data(k);  // corresponding to different subvectors
-          win2_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(1).data(k);
-          win3_data_[index_for_win] = records[i].dpm_multi_vector_record().vectors(2).data(k);
+          win1_dptr[index_for_win] = records[i].dpm_multi_vector_record().vectors(0).data(k);  // corresponding to different subvectors
+          win2_dptr[index_for_win] = records[i].dpm_multi_vector_record().vectors(1).data(k);
+          win3_dptr[index_for_win] = records[i].dpm_multi_vector_record().vectors(2).data(k);
         }
       }
    }
@@ -872,10 +875,10 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
 /******************** Implementation for DPMCombineSoftmaxLossLayer******************/
     void DPMCombineSoftmaxLossLayer::Setup(const LayerProto& proto, int npartitions) {
       LossLayer::Setup(proto, npartitions);
-      CHECK_EQ(srclayers_.size(),4);  // 3 innerproduct layers and 1 label layer
-      data_.Reshape(srclayers_[0]->data(this).shape()); // win1, win2, win3, label
+      CHECK_EQ(srclayers_.size(),4);  // 3 innerproduct layers and 1 label layer, order: win1, win2, win3, label
+      data_.Reshape(srclayers_[0]->data(this).shape());
       batchsize_=data_.shape()[0];
-      dim_=data_.count()/batchsize_;
+      dim_=data_.count()/batchsize_;  // i.e., neu2
       topk_=proto.softmaxloss_conf().topk();
       //metric_.Reshape(vector<int>{2});
       //scale_=proto.softmaxloss_conf().scale();
@@ -883,28 +886,22 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       win2_softmax_.Reshape(srclayers_[0]->data(this).shape());
       win3_softmax_.Reshape(srclayers_[0]->data(this).shape());
     }
-    void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
-      Shape<2> s=Shape2(batchsize_, dim_); // Softmax must use Tensor
-      //Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
-      //Tensor<cpu, 2> prob_win1(win1_softmax_.mutable_cpu_data(), s);
-        auto prob_win1 = Tensor2(&win1_softmax_);
-      //AllocSpace(prob_win1);
+    void DPMCombineSoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
+      Shape<2> s=Shape2(batchsize_, dim_); // Softmax must use Tensor, i.e., [batch_size, neu2]
+
+      auto prob_win1 = Tensor2(&win1_softmax_);  // for the layer with name "fc1_window1"
       Tensor<cpu, 2> src_win1(srclayers_[0]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win1, src_win1);
 
-      //Tensor<cpu, 2> prob_win2(win2_softmax_.mutable_cpu_data(), s);
-        auto prob_win2 = Tensor2(&win2_softmax_);
-      //AllocSpace(prob_win2);
+      auto prob_win2 = Tensor2(&win2_softmax_);  // for the layer with name "fc1_window2"
       Tensor<cpu, 2> src_win2(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win2, src_win2);
 
-      //Tensor<cpu, 2> prob_win3(win3_softmax_.mutable_cpu_data(), s);
-        auto prob_win3 = Tensor2(&win3_softmax_);
-      //AllocSpace(prob_win3);
-      Tensor<cpu, 2> src_win3(srclayers_[1]->mutable_data(this)->mutable_cpu_data(), s);
+      auto prob_win3 = Tensor2(&win3_softmax_);  // for the layer with name "fc1_window3"
+      Tensor<cpu, 2> src_win3(srclayers_[2]->mutable_data(this)->mutable_cpu_data(), s);
       Softmax(prob_win3, src_win3);
 
-      // TODO(kaiping): to check whether 2 Tensors can be added etc. element-wise
+      // TODO(kaiping): to check whether 2 Tensor2 tensors can be added etc. element-wise
       auto data = Tensor2(&data_);
       data = (prob_win1 + prob_win2 + prob_win3) / 3.0;
 
@@ -914,8 +911,8 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       for(int n=0;n<batchsize_;n++){
         int ilabel=static_cast<int>(label[n]);  // appropriate ground truth/label value
         //  CHECK_LT(ilabel,10);
-        CHECK_GE(ilabel,0);
-        CHECK_LT(ilabel,5);
+        CHECK_GE(ilabel,2);  // >= 2, label can only be 2, 3, 4, 5
+        CHECK_LT(ilabel,6);  // <= 5
         float prob_of_truth=probptr[ilabel];  // the probability of the ground truth, used in loss function
         loss-=log(std::max(prob_of_truth, FLT_MIN));
         vector<std::pair<float, int> > probvec;
@@ -937,13 +934,9 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       CHECK_EQ(probptr, prob.dptr+prob.shape.Size());
       perf->Add("loss", loss*scale_/(1.0f*batchsize_));
       perf->Add("accuracy", precision*scale_/(1.0f*batchsize_));
-
-      //FreeSpace(prob_win1);
-      //FreeSpace(prob_win2);
-      //FreeSpace(prob_win3);
     }
 
-    void SoftmaxLossLayer::ComputeGradient(Phase phase) {
+    void DPMCombineSoftmaxLossLayer::ComputeGradient(Phase phase) {
       const float* label=srclayers_[3]->data(this).cpu_data();
       float* softmax1 = win1_softmax_.mutable_cpu_data();
       float* softmax2 = win2_softmax_.mutable_cpu_data();
@@ -954,9 +947,10 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       Blob<float>* gsrcblob_2=srclayers_[1]->mutable_grad(this);
       Blob<float>* gsrcblob_3=srclayers_[2]->mutable_grad(this);
 
-      gsrcblob_1->CopyFrom(srclayers_[0]->data(this));
-      gsrcblob_2->CopyFrom(srclayers_[1]->data(this));
-      gsrcblob_3->CopyFrom(srclayers_[2]->data(this));
+      // TODO(kaiping) need to check the formula and usage for this
+      gsrcblob_1->CopyFrom(win1_softmax_);
+      gsrcblob_2->CopyFrom(win2_softmax_);
+      gsrcblob_3->CopyFrom(win3_softmax_);
 
       float* gsrcptr_1=gsrcblob_1->mutable_cpu_data();
       float* gsrcptr_2=gsrcblob_2->mutable_cpu_data();
@@ -977,7 +971,7 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       }
 
       Tensor<cpu, 1> gsrc1(gsrcptr_1, Shape1(gsrcblob_1->count()));  // deal with all rows in the batch together
-      gsrc1*=scale_/(1.0f*batchsize_);  // TODO(kaiping): why need this?
+      gsrc1*=scale_/(1.0f*batchsize_);  // TODO(kaiping): why need this? Actually compute an average gsrc of the whole batch
       Tensor<cpu, 1> gsrc2(gsrcptr_2, Shape1(gsrcblob_2->count()));  // deal with all rows in the batch together
       gsrc2*=scale_/(1.0f*batchsize_);
       Tensor<cpu, 1> gsrc3(gsrcptr_3, Shape1(gsrcblob_3->count()));  // deal with all rows in the batch together
