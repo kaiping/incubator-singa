@@ -576,6 +576,50 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
    win3_data_.Reshape(vector<int>{batchsize, feature_num_});
 }
 
+    Blob<float>* DPMMultiDestFeatureParserLayer::mutable_data(const Layer* from, Phase phase) {
+      // "from" here is the dest layer of DPMMultiDestFeatureParser
+      if (from != nullptr){
+        //LOG(ERROR)<<"not nullptr";
+        //if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
+        if ("fc1_window1" == from->name())
+          return &win1_data_;
+        else if ("fc1_window2" == from->name())
+          return &win2_data_;
+        else if ("fc1_window3" == from->name())
+          return &win3_data_;
+        else{
+          LOG(ERROR)<<"no mutable_data returned in the MultiSrcDatalayer return &data_";
+          return &data_;
+        }
+      }
+      else{
+        LOG(ERROR)<<"nullptr";
+        return &data_;
+      }
+    }
+
+    const Blob<float>& DPMMultiDestFeatureParserLayer::data(const Layer* from, Phase phase) const {
+      if (from != nullptr){
+        //LOG(ERROR)<<"not nullptr";
+        if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
+        //if ("fc1_window1" == from->name())
+          return win1_data_;
+        else if ( strcmp((from->name()).c_str(), "fc1_window2") == 0 )
+        //else if ("fc1_window2" == from->name())
+          return win2_data_;
+        else if ( strcmp((from->name()).c_str(), "fc1_window3") == 0 )
+        //else if ("fc1_window3" == from->name())
+          return win3_data_;
+        else{
+          LOG(ERROR)<<"no data returned in the MultiSrcDatalayer, return data_";
+          return data_;
+        }
+      }
+      else{
+        LOG(ERROR)<<"nullptr";
+        return data_;
+      }
+    }
 
 /******************** Implementation for PoolingLayer******************/
 void PoolingLayer::Setup(const LayerProto& proto, int npartitions) {

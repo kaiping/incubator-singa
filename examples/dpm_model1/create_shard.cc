@@ -178,11 +178,11 @@ void createShard(const char *input, int trainSize, int validSize,
     normalizeFeature(featureMatrix, patientNum, windowNum, featureDim);
 
     int offset = 0;
-    offset += generateShardFile(featureMatrix, "model1_train_shard", trainSize,
+    offset += generateShardFile(featureMatrix, "dpm_model1_train_shard", trainSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "model1_valid_shard", validSize,
+    offset += generateShardFile(featureMatrix, "dpm_model1_valid_shard", validSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "model1_test_shard", testSize,
+    offset += generateShardFile(featureMatrix, "dpm_model1_test_shard", testSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
 
     in.close();
