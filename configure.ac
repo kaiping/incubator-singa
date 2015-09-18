@@ -8,7 +8,7 @@ AC_CONFIG_MACRO_DIR(config)
 AC_CONFIG_SRCDIR([src/utils/common.cc])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([subdir-objects foreign])
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+#m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 ACLOCAL_AMFLAGS = -I m4 --install
 
 # Checks for programs.

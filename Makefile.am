@@ -5,8 +5,10 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 
 MSHADOW_FLAGS = -DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0
 
-AC_CXXFLAGS = -O3 -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
-              $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops
+CXXFLAGS= -g 
+CFLAGS= -g 
+AC_CXXFLAGS = -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
+              $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops -g
 
 INCLUDES = -I$(top_srcdir)/include
 
@@ -76,19 +78,19 @@ SINGA_HDRS := include/singa.h \
 lib_LTLIBRARIES = libsinga.la
 libsinga_la_SOURCES = $(PROTO_HDRS) $(PROTO_SRCS) $(SINGA_HDRS) $(SINGA_SRCS)
 if LMDB
-libsinga_la_CXXFLAGS = -O3 -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
-                       $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops -gdwarf-2 \
-                       -gstrict-dwarf -Woverloaded-virtual -DTHREADED -fpermissive -DUSE_LMDB
+libsinga_la_CXXFLAGS = -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
+                       $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops \
+                       -Woverloaded-virtual -DTHREADED -fpermissive -DUSE_LMDB
 else
-libsinga_la_CXXFLAGS = -O3 -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
-                       $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops -gdwarf-2 \
-                       -gstrict-dwarf -Woverloaded-virtual -DTHREADED -fpermissive
+libsinga_la_CXXFLAGS = -Wall -pthread -fPIC -std=c++11 -Wno-unknown-pragmas \
+                       $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops \
+                       -Woverloaded-virtual -DTHREADED -fpermissive
 endif
 libsinga_la_LDFLAGS = -I./include
 
 bin_PROGRAMS = singa
 singa_SOURCES = src/main.cc
-singa_CXXFLAGS = -O3 -Wall -pthread -fPIC -std=c++11 -MMD -Wno-unknown-pragmas \
+singa_CXXFLAGS = -Wall -pthread -fPIC -std=c++11 -MMD -Wno-unknown-pragmas \
                  $(MSHADOW_FLAGS) -DCPU_ONLY=1 -funroll-loops -DTHREADED
 singa_LDFLAGS = -I./include \
                 -lsinga \
@@ -108,7 +110,7 @@ endif
 
 bin_PROGRAMS += singatool
 singatool_SOURCES = src/utils/tool.cc
-singatool_CXXFLAGS = -O3 -Wall -pthread -fPIC -std=c++11 -MMD -Wno-unknown-pragmas \
+singatool_CXXFLAGS = -Wall -pthread -fPIC -std=c++11 -MMD -Wno-unknown-pragmas \
                      -funroll-loops -DTHREADED
 singatool_LDFLAGS = -I./include \
                     -lsinga \

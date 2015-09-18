@@ -291,6 +291,10 @@ class DPMMultiDestFeatureParserLayer: public ParserLayer {
                           Blob<float>* blob) override;
         Blob<float>* mutable_data(const Layer* from, Phase phase) override;
         const Blob<float>& data(const Layer* from, Phase phase) const override;
+	ConnectionType dst_layer_connection() const  override {
+	    // CHECK_LT(k, srclayers_.size());
+	  return kOneToAll;
+	}
 
 protected:
         int feature_num_;

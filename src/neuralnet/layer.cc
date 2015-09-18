@@ -565,8 +565,8 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
    Layer::Setup(proto, npartitions);
    CHECK_EQ(srclayers_.size(),1);
    int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
-   feature_num_ = proto.dpmfeatureparser_conf().feature_num();
-   window_num_ = proto.dpmfeatureparser_conf().window_num();
+   feature_num_ = proto.dpm_multidest_featureparser_conf().feature_num();
+   window_num_ = proto.dpm_multidest_featureparser_conf().window_num();
    int totallength = feature_num_ * window_num_;
    // Not add separately
    data_.Reshape(vector<int>{batchsize, totallength});
@@ -579,7 +579,6 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
     Blob<float>* DPMMultiDestFeatureParserLayer::mutable_data(const Layer* from, Phase phase) {
       // "from" here is the dest layer of DPMMultiDestFeatureParser
       if (from != nullptr){
-        //LOG(ERROR)<<"not nullptr";
         //if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
         if ("fc1_window1" == from->name())
           return &win1_data_;
@@ -588,19 +587,18 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
         else if ("fc1_window3" == from->name())
           return &win3_data_;
         else{
-          LOG(ERROR)<<"no mutable_data returned in the MultiSrcDatalayer return &data_";
+          LOG(ERROR)<<"mutable_data() - no mutable_data returned in the MultiSrcDatalayer return &data_";
           return &data_;
         }
       }
       else{
-        LOG(ERROR)<<"nullptr";
+        LOG(ERROR)<<"mutable_data() - nullptr";
         return &data_;
       }
     }
 
     const Blob<float>& DPMMultiDestFeatureParserLayer::data(const Layer* from, Phase phase) const {
       if (from != nullptr){
-        //LOG(ERROR)<<"not nullptr";
         if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
         //if ("fc1_window1" == from->name())
           return win1_data_;
@@ -611,12 +609,12 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
         //else if ("fc1_window3" == from->name())
           return win3_data_;
         else{
-          LOG(ERROR)<<"no data returned in the MultiSrcDatalayer, return data_";
+          LOG(ERROR)<<"data() - no data returned in the MultiSrcDatalayer, return data_";
           return data_;
         }
       }
       else{
-        LOG(ERROR)<<"nullptr";
+        LOG(ERROR)<<"data() - nullptr";
         return data_;
       }
     }
