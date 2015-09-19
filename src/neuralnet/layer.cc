@@ -579,12 +579,11 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
     Blob<float>* DPMMultiDestFeatureParserLayer::mutable_data(const Layer* from, Phase phase) {
       // "from" here is the dest layer of DPMMultiDestFeatureParser
       if (from != nullptr){
-        //if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
-        if ("fc1_window1" == from->name())
+        if ("fc1_window1@00" == from->name())
           return &win1_data_;
-        else if ("fc1_window2" == from->name())
+        else if ("fc1_window2@00" == from->name())
           return &win2_data_;
-        else if ("fc1_window3" == from->name())
+        else if ("fc1_window3@00" == from->name())
           return &win3_data_;
         else{
           LOG(ERROR)<<"mutable_data() - no mutable_data returned in the MultiSrcDatalayer return &data_";
@@ -599,14 +598,11 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
 
     const Blob<float>& DPMMultiDestFeatureParserLayer::data(const Layer* from, Phase phase) const {
       if (from != nullptr){
-        if ( strcmp((from->name()).c_str(), "fc1_window1") == 0 )
-        //if ("fc1_window1" == from->name())
+        if ("fc1_window1@00" == from->name())
           return win1_data_;
-        else if ( strcmp((from->name()).c_str(), "fc1_window2") == 0 )
-        //else if ("fc1_window2" == from->name())
+        else if ("fc1_window2@00" == from->name())
           return win2_data_;
-        else if ( strcmp((from->name()).c_str(), "fc1_window3") == 0 )
-        //else if ("fc1_window3" == from->name())
+        else if ("fc1_window3@00" == from->name())
           return win3_data_;
         else{
           LOG(ERROR)<<"data() - no data returned in the MultiSrcDatalayer, return data_";
@@ -921,7 +917,8 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       data_.Reshape(srclayers_[0]->data(this).shape());
       batchsize_=data_.shape()[0];
       dim_=data_.count()/batchsize_;  // i.e., neu2
-      topk_=proto.softmaxloss_conf().topk();
+      topk_=proto.dpm_combine_softmaxloss_conf().topk();
+      scale_=proto.dpm_combine_softmaxloss_conf().scale();
       //metric_.Reshape(vector<int>{2});
       //scale_=proto.softmaxloss_conf().scale();
       win1_softmax_.Reshape(srclayers_[0]->data(this).shape());  // Reshape is like Initialization
@@ -953,8 +950,8 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
       for(int n=0;n<batchsize_;n++){
         int ilabel=static_cast<int>(label[n]);  // appropriate ground truth/label value
         //  CHECK_LT(ilabel,10);
-        CHECK_GE(ilabel,2);  // >= 2, label can only be 2, 3, 4, 5
-        CHECK_LT(ilabel,6);  // <= 5
+        CHECK_GE(ilabel,0);  // Change label information to be 0, 1, 2, 3
+        CHECK_LT(ilabel,4);
         float prob_of_truth=probptr[ilabel];  // the probability of the ground truth, used in loss function
         loss-=log(std::max(prob_of_truth, FLT_MIN));
         vector<std::pair<float, int> > probvec;

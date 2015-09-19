@@ -73,7 +73,7 @@ def format_output(nric, label):
             format_vector(test_fail_info_dict.setdefault(nric, [[] for _ in range(shard_num)])[shard_idx]),
             format_vector(med_info_dict.setdefault(nric, [[] for _ in range(shard_num)])[shard_idx])
         ]))
-    return '\001'.join([str(nric)] + feature_shard + [str(label)]) + '\n'
+    return '\001'.join([str(nric)] + feature_shard + [str(int(label)-2)]) + '\n'
 
 
 def print_output():
