@@ -100,11 +100,11 @@ void createShard(const char *input, int trainSize, int validSize,
     }
 
     int offset = 0;
-    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca1_train_shard", trainSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca_train_shard", trainSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca1_valid_shard", validSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca_valid_shard", validSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
-    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca1_test_shard", testSize,
+    offset += generateShardFile(featureMatrix, "dpm_baseline1_pca_test_shard", testSize,
                                 windowNum, featureDim, offset, nricVec, labelVec);
 
     in.close();
