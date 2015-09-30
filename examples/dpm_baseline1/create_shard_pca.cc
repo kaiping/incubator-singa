@@ -80,7 +80,7 @@ void createShard(const char *input, int trainSize, int validSize,
     int windowNum = 1;
 
     // Just set dimension of features, hard-coded now
-    int featureDim = 150;
+    int featureDim = 280;
     int sumSize = trainSize + validSize + testSize;  // this sumSize should be no more than patientNum
     CHECK(sumSize <= patientNum) << "no enough patients for generation";
 
