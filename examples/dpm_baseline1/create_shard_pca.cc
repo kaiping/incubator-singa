@@ -56,11 +56,11 @@ int generateShardFile(float *featureMatrix, const std::string &filePath, int sha
             singa::DPMVectorRecord* singleVec = mvr->add_vectors();
             for (int k = 0; k < featureDim; ++k) {
                 singleVec->add_data((featureMatrix + i * patientWidth + j * featureDim)[k]);
-                std::cout << "Patient " << i << " information features: " << (featureMatrix + i * patientWidth + j * featureDim)[k] << std::endl;
+                //std::cout << "Patient " << i << " information features: " << (featureMatrix + i * patientWidth + j * featureDim)[k] << std::endl;
             }
         }
         mvr->set_label(labelVec[i]);
-        std::cout << "Patient " << i << " information label: " << labelVec[i] << std::endl;
+        //std::cout << "Patient " << i << " information label: " << labelVec[i] << std::endl;
         dataShard.Insert(nricVec[i].c_str(), record);
     }
     dataShard.Flush();
