@@ -278,8 +278,8 @@ int splitClasses() {
 }
 
 int init_class() {
-    // debug_mode = 1;
-    debug_mode = 0;
+    debug_mode = 1;
+    // debug_mode = 0;
     vocab_max_size = 100;  // largest length value for each word
     vocab_size = 0;
     vocab = (struct vocab_word *) calloc(vocab_max_size,
@@ -325,6 +325,7 @@ int create_shard(const char *input_file, const char *output_file) {
             dataShard.Insert(string(str_buffer, length), wordRecord);
         }
     }
+    if (debug_mode) printf("\nNum of words is %d\n", wcnt);
 
     dataShard.Flush();
     fclose(fin);

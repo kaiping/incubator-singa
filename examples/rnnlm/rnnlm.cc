@@ -272,9 +272,11 @@ void OutputLayer::ComputeFeature(int flag, Metric* perf) {
     loss += -log(std::max(pword[wid - start] * pclass[t][cid], FLT_MIN));
     ppl += log10(std::max(pword[wid - start] * pclass[t][cid], FLT_MIN));
   }
-
+  //float ppl_after_exp = pow(10.0, ppl * (-1.0));
   perf->Add("loss", loss, window_);
   perf->Add("ppl before exp", ppl, window_);
+  //perf->Add("ppl after exp", pow(10.0, -ppl), window_);
+  //perf->Add("ppl after exp", ppl_after_exp, window_);
 }
 
 void OutputLayer::ComputeGradient(int flag, Metric* perf) {
