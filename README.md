@@ -6,12 +6,10 @@ Distributed deep learning system
 
 All the details can be found in project website.
 
-Pay attention to the "window_num" field in FeatureParser
+This is the experimental setting version after using PCA for data preprocessing
 
-When window_num = 1, Name: NaiiveSingleMlp1Win
+3 window situation
 
-When window_num > 1, Name: NaiiveSingleMlpXWin
+Rewrite create_shard__pca.cc file for dealing with all features in 3 windows
 
-
-
-
+Here for simplicity, we deal 3 windows' features as in 1 window, put them in 1 single-vector together
