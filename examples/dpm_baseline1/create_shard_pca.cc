@@ -28,28 +28,44 @@ std::vector <std::string> split(const std::string &s, char delim) {
 }
 
 void readOnePatient(float *featureMatrix, int windowNum, int featureDim, const std::string &dataline1,
-                    const std::string &dataline2, const std::string &dataline3, std::string *nric, float *label) {
-    auto OnePatientWin1 = split(dataline1, ' '); // format: 75 features Label NRIC
-    auto OnePatientWin2 = split(dataline2, ' '); // format: 130 features Label NRIC
-    auto OnePatientWin3 = split(dataline3, ' '); // format: 240 features Label NRIC
+                    const std::string &dataline2, const std::string &dataline3, const std::string &dataline4,
+                    const std::string &dataline5, const std::string &dataline6, std::string *nric, float *label) {
+    auto OnePatientWin1 = split(dataline1, ' '); // format: 57 features Label NRIC
+    auto OnePatientWin2 = split(dataline2, ' '); // format: 63 features Label NRIC
+    auto OnePatientWin3 = split(dataline3, ' '); // format: 72 features Label NRIC
+    auto OnePatientWin4 = split(dataline4, ' '); // format: 115 features Label NRIC
+    auto OnePatientWin5 = split(dataline5, ' '); // format: 155 features Label NRIC
+    auto OnePatientWin6 = split(dataline6, ' '); // format: 176 features Label NRIC
 
     // label segment
     // Now we use hard-coded information: 75 features in win1, 130 features in win2 and 240 features in win3
-    *label = atof(OnePatientWin3[240].c_str());  // Label (0-239 are features)
-    *nric = OnePatientWin3[240 + 1];  // NRIC is after label info
+    *label = atof(OnePatientWin6[176].c_str());  // Label (0-239 are features)
+    *nric = OnePatientWin6[176 + 1];  // NRIC is after label info
 
     // feature segment
     for (int i = 0; i < windowNum * featureDim; ++i) { // the first windowNum * featureDim parts are features
-        if(i < 75) {
+        if(i < 57) {
             float value = atof(OnePatientWin1[i].c_str());
             featureMatrix[i] = value;
         }
-        else if(i < 205) {
-            float value = atof(OnePatientWin2[i - 75].c_str());
+        else if(i < 120) {
+            float value = atof(OnePatientWin2[i - 57].c_str());
+            featureMatrix[i] = value;
+        }
+        else if(i < 192) {
+            float value = atof(OnePatientWin3[i - 120].c_str());
+            featureMatrix[i] = value;
+        }
+        else if(i < 307) {
+            float value = atof(OnePatientWin4[i - 192].c_str());
+            featureMatrix[i] = value;
+        }
+        else if(i < 462) {
+            float value = atof(OnePatientWin5[i - 307].c_str());
             featureMatrix[i] = value;
         }
         else {
-            float value = atof(OnePatientWin3[i - 205].c_str());
+            float value = atof(OnePatientWin6[i - 462].c_str());
             featureMatrix[i] = value;
         }
     }
@@ -81,7 +97,7 @@ int generateShardFile(float *featureMatrix, const std::string &filePath, int sha
     return shardSize;
 }
 
-void createShard(const char *input1, const char *input2, const char *input3, int trainSize, int validSize,
+void createShard(const char *input1, const char *input2, const char *input3, const char *input4, const char *input5, const char *input6, int trainSize, int validSize,
                  int testSize) {  // input is the output text file of python
 
     std::ifstream in1(input1);
@@ -90,6 +106,12 @@ void createShard(const char *input1, const char *input2, const char *input3, int
     CHECK(in2) << "Unable to open file " << input2;
     std::ifstream in3(input3);
     CHECK(in3) << "Unable to open file " << input3;
+    std::ifstream in4(input4);
+    CHECK(in4) << "Unable to open file " << input4;
+    std::ifstream in5(input5);
+    CHECK(in5) << "Unable to open file " << input5;
+    std::ifstream in6(input6);
+    CHECK(in6) << "Unable to open file " << input6;
 
 
     // Just set number of patient, hard-coded now
@@ -99,7 +121,7 @@ void createShard(const char *input1, const char *input2, const char *input3, int
     int windowNum = 1;
 
     // Just set dimension of features, hard-coded now
-    int featureDim = 445;
+    int featureDim = 638;
     int sumSize = trainSize + validSize + testSize;  // this sumSize should be no more than patientNum
     CHECK(sumSize <= patientNum) << "no enough patients for generation";
 
@@ -111,16 +133,25 @@ void createShard(const char *input1, const char *input2, const char *input3, int
     std::string dataline1;
     std::string dataline2;
     std::string dataline3;
+    std::string dataline4;
+    std::string dataline5;
+    std::string dataline6;
     //std::cout << "test" << std::endl;
     for (int i = 0; i < patientNum; ++i) {  // Here we control how we use different patients; and here we obtain all info we need
         getline(in1, dataline1);
         getline(in2, dataline2);
         getline(in3, dataline3);
+        getline(in4, dataline4);
+        getline(in5, dataline5);
+        getline(in6, dataline6);
         readOnePatient(featureMatrix + i * windowNum * featureDim, windowNum, featureDim, dataline1, dataline2,
-                       dataline3, nricVec + i, labelVec + i); // We use NRIC vector, but NRIC information is output after label
+                       dataline3, dataline4, dataline5, dataline6, nricVec + i, labelVec + i); // We use NRIC vector, but NRIC information is output after label
         //std::cout << "Patient " << i << " WIN1 information: " << dataline1 << std::endl;
         //std::cout << "Patient " << i << " WIN2 information: " << dataline2 << std::endl;
         //std::cout << "Patient " << i << " WIN3 information: " << dataline3 << std::endl;
+        //std::cout << "Patient " << i << " WIN4 information: " << dataline4 << std::endl;
+        //std::cout << "Patient " << i << " WIN5 information: " << dataline5 << std::endl;
+        //std::cout << "Patient " << i << " WIN6 information: " << dataline6 << std::endl;
     }
 
     int offset = 0;
@@ -134,6 +165,9 @@ void createShard(const char *input1, const char *input2, const char *input3, int
     in1.close();
     in2.close();
     in3.close();
+    in4.close();
+    in5.close();
+    in6.close();
 
     delete[] featureMatrix;
     delete[] nricVec;
@@ -141,15 +175,15 @@ void createShard(const char *input1, const char *input2, const char *input3, int
 }
 
 int main(int argc, char **argv) {
-    if (argc != 7) {
+    if (argc != 10) {
         std::cout << "Usage:\n"
-                "    create_shard_pca.bin [in_text_file1] [in_text_file2] [in_text_file3] [train_size] [validate_size] [test_size]\n";
+                "    create_shard_pca.bin [in_text_file1] [in_text_file2] [in_text_file3] [in_text_file4] [in_text_file5] [in_text_file6] [train_size] [validate_size] [test_size]\n";
     } else {
         google::InitGoogleLogging(argv[0]);
-        int trainSize = atoi(argv[4]);
-        int validSize = atoi(argv[5]);
-        int testSize = atoi(argv[6]);
-        createShard(argv[1], argv[2], argv[3], trainSize, validSize, testSize);
+        int trainSize = atoi(argv[7]);
+        int validSize = atoi(argv[8]);
+        int testSize = atoi(argv[9]);
+        createShard(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], trainSize, validSize, testSize);
     }
     return 0;
 }
