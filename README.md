@@ -8,7 +8,7 @@ All the details can be found in project website.
 
 This is the Model 1 - 1st version model:
 
-Name: MultiMlpNaiiveCombine
+Name: MultiMlpNaiiveCombine-pca
 
 Detailed info:
 
@@ -17,6 +17,8 @@ Detailed info:
 2. Weight (importance) of each window is equal (all 0.333333...)
 
 3. In the SoftmaxLossLayer, first compute the softmax results for each window and then obtain a weighted sum
+
+4. We use PCA for preprocessing to reduce num of features
 
 Note:
 
