@@ -547,8 +547,10 @@ void DPMMultiDestFeatureParserLayer::ParseRecords(Phase phase, const vector<Reco
    float* win1_dptr=win1_data_.mutable_cpu_data();
    float* win2_dptr=win2_data_.mutable_cpu_data();
    float* win3_dptr=win3_data_.mutable_cpu_data();
+   //LOG(ERROR) << "WIN 1 info: \n";
    for(int i = 0; i < records.size(); i++) {  // each is one dpm_multi_vector_record, corresponding to one patient, i.e., one row; the ith multi-vector
-      for(int j = 0; j < window_num_; j++) {
+     /*To modify this part*/
+     /*for(int j = 0; j < window_num_; j++) {
         for(int k = 0; k < feature_num_; k++) {  // in each window, traverse all features; the kth feature
           int index = i * feature_num_ * window_num_ + j * feature_num_ + k;
           dptr[index] = records[i].dpm_multi_vector_record().vectors(j).data(k);
@@ -557,7 +559,33 @@ void DPMMultiDestFeatureParserLayer::ParseRecords(Phase phase, const vector<Reco
           win2_dptr[index_for_win] = records[i].dpm_multi_vector_record().vectors(1).data(k);
           win3_dptr[index_for_win] = records[i].dpm_multi_vector_record().vectors(2).data(k);
         }
-      }
+      }*/
+     //LOG(ERROR) << "Patient: " << i << " test info\n";
+     for(int k = 0; k < feature_num_win1; k++) {
+       int index = i * total_feature_num + k;
+       dptr[index] = records[i].dpm_multi_vector_record().vectors(0).data(k);
+       int index_for_win1 = i * feature_num_win1 + k;
+       win1_dptr[index_for_win1] = records[i].dpm_multi_vector_record().vectors(0).data(k);  // corresponding to 1st subvector
+       //LOG(ERROR) << "ALL WINDOWS Feature no. " << k << "is: " << dptr[index];
+       //LOG(ERROR) << "WIN1 Feature no. " << k << "is: " << win1_dptr[index_for_win1];
+     }
+     for(int k = 0; k < feature_num_win2; k++) {
+       int index = i * total_feature_num + k + 75;
+       dptr[index] = records[i].dpm_multi_vector_record().vectors(1).data(k);
+       int index_for_win2 = i * feature_num_win2 + k;
+       win2_dptr[index_for_win2] = records[i].dpm_multi_vector_record().vectors(1).data(k);  // corresponding to 2nd subvector
+       //LOG(ERROR) << "ALL WINDOWS Feature no. " << k + 75 << "is: " << dptr[index];
+       //LOG(ERROR) << "WIN2 Feature no. " << k << "is: " << win2_dptr[index_for_win2];
+     }
+     for(int k = 0; k < feature_num_win3; k++) {
+       int index = i * total_feature_num + k + 75 + 130;
+       dptr[index] = records[i].dpm_multi_vector_record().vectors(2).data(k);
+       int index_for_win3 = i * feature_num_win3 + k;
+       win3_dptr[index_for_win3] = records[i].dpm_multi_vector_record().vectors(2).data(k);  // corresponding to 2nd subvector
+       //LOG(ERROR) << "ALL WINDOWS Feature no. " << k + 75 + 130 << "is: " << dptr[index];
+       //LOG(ERROR) << "WIN3 Feature no. " << k << "is: " << win3_dptr[index_for_win3];
+     }
+
    }
 }
 
@@ -565,15 +593,17 @@ void DPMMultiDestFeatureParserLayer::Setup(const LayerProto& proto, int npartiti
    Layer::Setup(proto, npartitions);
    CHECK_EQ(srclayers_.size(),1);
    int batchsize=static_cast<DataLayer*>(srclayers_[0])->batchsize();
-   feature_num_ = proto.dpm_multidest_featureparser_conf().feature_num();
+   feature_num_win1 = proto.dpm_multidest_featureparser_conf().feature_num_win1();
+   feature_num_win2 = proto.dpm_multidest_featureparser_conf().feature_num_win2();
+   feature_num_win3 = proto.dpm_multidest_featureparser_conf().feature_num_win3();
+   total_feature_num = feature_num_win1 + feature_num_win2 + feature_num_win3;
    window_num_ = proto.dpm_multidest_featureparser_conf().window_num();
-   int totallength = feature_num_ * window_num_;
    // Not add separately
-   data_.Reshape(vector<int>{batchsize, totallength});
+   data_.Reshape(vector<int>{batchsize, total_feature_num});
    // Add separately
-   win1_data_.Reshape(vector<int>{batchsize, feature_num_});
-   win2_data_.Reshape(vector<int>{batchsize, feature_num_});
-   win3_data_.Reshape(vector<int>{batchsize, feature_num_});
+   win1_data_.Reshape(vector<int>{batchsize, feature_num_win1});
+   win2_data_.Reshape(vector<int>{batchsize, feature_num_win2});
+   win3_data_.Reshape(vector<int>{batchsize, feature_num_win3});
 }
 
     Blob<float>* DPMMultiDestFeatureParserLayer::mutable_data(const Layer* from, Phase phase) {

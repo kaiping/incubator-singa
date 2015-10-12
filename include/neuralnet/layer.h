@@ -297,7 +297,10 @@ class DPMMultiDestFeatureParserLayer: public ParserLayer {
 	}
 
 protected:
-        int feature_num_;
+        int feature_num_win1;
+        int feature_num_win2;
+        int feature_num_win3;
+        int total_feature_num;
         int window_num_;
         Blob<float> win1_data_, win2_data_, win3_data_;
 };

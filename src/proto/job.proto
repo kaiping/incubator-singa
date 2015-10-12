@@ -436,8 +436,10 @@ message DPMFeatureParserProto {
 
  // TODO(kaiping): Model 1, check later
 message DPMMultiDestFeatureParserProto {
-  required int32 feature_num = 1;  // Need to specify the length of one feature for one patient
-  required int32 window_num = 2;  // Need to specify the number of feature windows one patient has
+  required int32 feature_num_win1 = 1;  // Need to specify the length of one feature for one patient, this situation is for different number of features in different window
+  required int32 feature_num_win2 = 2;
+  required int32 feature_num_win3 = 3;
+  required int32 window_num = 4;  // Need to specify the number of feature windows one patient has
 }
 
 message DPMCombineSoftmaxLossProto {
