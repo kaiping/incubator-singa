@@ -1,0 +1,13 @@
+libs :=singa glog protobuf
+
+
+dirshards = dpm_baseline1_train_shard dpm_baseline1_valid_shard dpm_baseline1_test_shard
+
+.PHONY: create
+
+create:
+	$(CXX) create_shard_pca.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include \
+		-L../../.libs/ -L/usr/local/lib -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
+		-o create_shard_pca.bin
+	for d in $(dirshards); do mkdir -p $${d}; done
+	./create_shard_pca.bin pca-w9-1-f50.txt pca-w9-2-f55.txt pca-w9-3-f55.txt pca-w9-4-f61.txt pca-w9-5-f73.txt pca-w9-6-f105.txt pca-w9-7-f121.txt pca-w9-8-f140.txt pca-w9-9-f146.txt 1260 0 540
