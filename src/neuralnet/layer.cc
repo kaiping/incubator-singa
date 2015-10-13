@@ -972,7 +972,7 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
 
       // TODO(kaiping): to check whether 2 Tensor2 tensors can be added etc. element-wise
       auto data = Tensor2(&data_);
-      data = (prob_win1 + prob_win2 + prob_win3) / 3.0;
+      data = prob_win1 * (1.0 / 6.0) + prob_win2 * (1.0 / 3.0) + prob_win3 * (1.0 / 2.0);
 
       const float* label=srclayers_[3]->data(this).cpu_data();
       const float* probptr=data.dptr;
@@ -1033,9 +1033,9 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
 
       for(int n = 0;n < batchsize_;n++){
         for(int idx = 0;idx < dim_; idx++){
-            gsrcptr_1[n * dim_ + idx] = gsrcptr_1[n * dim_ + idx] * softmax1[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_1[n * dim_ + idx] = gsrcptr_1[n * dim_ + idx] * softmax1[n*dim_+static_cast<int>(label[n])] / (6.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
             gsrcptr_2[n * dim_ + idx] = gsrcptr_2[n * dim_ + idx] * softmax2[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
-            gsrcptr_3[n * dim_ + idx] = gsrcptr_3[n * dim_ + idx] * softmax3[n*dim_+static_cast<int>(label[n])] / (3.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
+            gsrcptr_3[n * dim_ + idx] = gsrcptr_3[n * dim_ + idx] * softmax3[n*dim_+static_cast<int>(label[n])] / (2.0 * datainfo[n*dim_+static_cast<int>(label[n])]);
         }
       }
 
