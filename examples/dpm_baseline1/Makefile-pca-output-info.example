@@ -1,0 +1,10 @@
+libs :=singa glog protobuf
+
+.PHONY: create
+
+create:
+	$(CXX) output_info_pca.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include \
+		-L../../.libs/ -L/usr/local/lib -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
+		-o output_info_pca.bin
+	for d in $(dirshards); do mkdir -p $${d}; done
+	./output_info_pca.bin pca-w3-1-f75-l10.txt pca-w3-2-f130-l10.txt pca-w3-3-f240-l10.txt
