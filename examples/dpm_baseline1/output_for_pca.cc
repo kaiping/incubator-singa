@@ -74,7 +74,8 @@ void output_for_1_win(float *featureMatrix, int trainSize, int windowIdx, int wi
             // out << (featureMatrix + i * patientWidth + windowIdx * featureDim)[k] << " ";
         }
         if(sumFeatureCnt > EPS) { // only output non-empty feature windows
-            out << nricVec[i] <<" " << "CNT_SUM: " << sumFeatureCnt << std::endl;
+            //out << nricVec[i] <<" " << "CNT_SUM: " << sumFeatureCnt << std::endl;
+            out << nricVec[i] <<" ";
             for(int k = 0; k < featureDim; k++) {
                 out << (featureMatrix + i * patientWidth + windowIdx * featureDim)[k] << " ";
             }
@@ -82,13 +83,16 @@ void output_for_1_win(float *featureMatrix, int trainSize, int windowIdx, int wi
         }
     }
     //For testing dataset, no need to remove empty windows; so no need to check
-    for(int i = trainSize; i < nricVec->size(); i++) {
+    //std::cout << "Test: " << nricVec->size() << std::endl; // this is the size for 1st element in nricVec (which is an array)
+    //std::cout << "Test: " << (*nricVec).size() << std::endl;
+    for(int i = trainSize; i < 1818; i++) {
         out << nricVec[i] <<" ";
         for(int k = 0; k < featureDim; k++) {
             out << (featureMatrix + i * patientWidth + windowIdx * featureDim)[k] << " ";
         }
         out << labelVec[i] << std::endl;
     }
+    out.close();
 }
 
 void output_info(const char *input, int trainSize, int validSize,
