@@ -739,6 +739,9 @@ void ShardDataLayer::ComputeFeature(Phase phase, Metric* perf){
       shard_->SeekToFirst();
       CHECK(shard_->Next(&key, &record));
     }
+    //if(phase == kTest) {
+    //  LOG(ERROR) << "Patient: " << key << std::endl;
+    //}
   }
 }
 
@@ -782,6 +785,10 @@ void TanhLayer::ComputeGradient(Phase phase) {
   gsrc=F<op::stanh_grad>(data)*grad;
 }
 /********** * Implementation for SoftmaxLossLayer*************************/
+//SoftmaxLossLayer::SoftmaxLossLayer() {
+//  output_ = NULL;
+//}
+
 void SoftmaxLossLayer::Setup(const LayerProto& proto, int npartitions) {
   LossLayer::Setup(proto, npartitions);
   CHECK_EQ(srclayers_.size(),2);
@@ -791,7 +798,9 @@ void SoftmaxLossLayer::Setup(const LayerProto& proto, int npartitions) {
   topk_=proto.softmaxloss_conf().topk();
   metric_.Reshape(vector<int>{2});
   scale_=proto.softmaxloss_conf().scale();
+  output_.open("test_info_win1_wd1.csv");
 }
+
 void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
   Shape<2> s=Shape2(batchsize_, dim_);
   Tensor<cpu, 2> prob(data_.mutable_cpu_data(), s);
@@ -815,6 +824,9 @@ void SoftmaxLossLayer::ComputeFeature(Phase phase, Metric* perf) {
         probvec.end(), std::greater<std::pair<float, int> >());
     // check if true label is in top k predictions
     for (int k = 0; k < topk_; k++) {  // In our case, topk = 1, limit to only 1 result
+      if(phase == kTest) {
+        output_ << "Ground truth: " << static_cast<int>(label[n]) << "," << "Predicted label: " << probvec[k].second << std::endl;
+      }
       if (probvec[k].second == static_cast<int>(label[n])) {
         precision++;
         break;
@@ -837,6 +849,10 @@ void SoftmaxLossLayer::ComputeGradient(Phase phase) {
   }
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));  // deal with all rows in the batch together
   gsrc*=scale_/(1.0f*batchsize_);
+}
+
+SoftmaxLossLayer::~SoftmaxLossLayer() {
+  output_.close();
 }
 
 }  // namespace singa

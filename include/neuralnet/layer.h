@@ -319,6 +319,8 @@ class SoftmaxLossLayer: public LossLayer {
   void Setup(const LayerProto& proto, int npartitions) override;
   void ComputeFeature(Phase phase, Metric *perf) override;
   void ComputeGradient(Phase phase) override;
+    //SoftmaxLossLayer();
+    ~SoftmaxLossLayer();
 
   /**
    * softmax is not recommendeded for partition because it requires the whole
@@ -338,6 +340,7 @@ class SoftmaxLossLayer: public LossLayer {
   int dim_;
   float scale_;
   int topk_;
+  std::ofstream output_;
 };
 
 class RGBImageLayer: public ParserLayer {
