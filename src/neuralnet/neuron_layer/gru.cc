@@ -251,7 +251,7 @@ void GRULayer::ComputeGradient(int flag,
         clayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdr, weight_r_hh_->data(), clayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdz, weight_z_hh_->data(), clayer->mutable_grad(this));
-    Add(clayer->grad(this), * , clayer->mutable_grad(this));
+    Add(clayer->grad(this), *update_gate_, clayer->mutable_grad(this));
     // LOG(ERROR) << "grad to prev gru " << Asum(clayer->grad(this));
   }
 
