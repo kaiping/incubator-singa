@@ -64,7 +64,7 @@ void GRULayer::Setup(const LayerProto& conf,
   data_.Reshape(vector<int>{batchsize_, hdim_});
   grad_.ReshapeLike(data_);
   // one for grad from dst GRU, one for grad from upper layer
-  gradvec_.push_back(new Blob<float>(grad_.shape()));
+  gradvec_.push_back(new Blob<float>(grad_.shape())); //TODO(kaiping) why not check whether push 1 or 2 grads?
 
   // Initialize the parameters
   weight_z_hx_ = Param::Create(conf.param(0));
@@ -162,7 +162,7 @@ void GRULayer::ComputeFeature(int flag,
 void GRULayer::ComputeGradient(int flag,
     const vector<Layer*>& srclayers) {
   CHECK_LE(srclayers.size(), 2);
-  // agg grad from two dst layers, gradvec_[0] is grad_
+  // agg grad from two dst layers, gradvec_[0] is grad_ (computed as src_grad in the direct upper layer)
   AXPY(1.0f, *gradvec_[1], &grad_);
   float beta = 1.0f;  // agg param gradients
 
@@ -178,7 +178,7 @@ void GRULayer::ComputeGradient(int flag,
     context = &(clayer->data(this));
   }
 
-  // Compute intermediate gradients which are used for other computations
+  // Compute intermediate gradients which are used for other computations (gradient of gates to pre-activation sum)
   Blob<float> dugatedz(batchsize_, hdim_);
   Map<singa::op::SigmoidGrad<float>, float>(*update_gate_, &dugatedz);
   Blob<float> drgatedr(batchsize_, hdim_);
@@ -186,11 +186,13 @@ void GRULayer::ComputeGradient(int flag,
   Blob<float> dnewmdc(batchsize_, hdim_);
   Map<singa::op::TanhGrad<float>, float>(*new_memory_, &dnewmdc);
 
+  // kaiping: Compute gradient of Loss to pre-activated sum of Update Gate
   Blob<float> dLdz(batchsize_, hdim_);
   Sub<float>(*context, *new_memory_, &dLdz);
   Mult<float>(dLdz, grad_, &dLdz);
   Mult<float>(dLdz, dugatedz, &dLdz);
 
+  // kaiping: Compute gradient of Loss to pre-activated sum of Context
   Blob<float> dLdc(batchsize_, hdim_);
   Blob<float> z1(batchsize_, hdim_);
   z1.SetValue(1.0f);
@@ -198,9 +200,11 @@ void GRULayer::ComputeGradient(int flag,
   Mult(grad_, z1, &dLdc);
   Mult(dLdc, dnewmdc, &dLdc);
 
+  // kaiping: Compute the product of dLdc and reset_gate
   Blob<float> reset_dLdc(batchsize_, hdim_);
   Mult(dLdc, *reset_gate_, &reset_dLdc);
 
+  // kaiping: Compute gradient of Loss to pre-activated sum of Reset Gate
   Blob<float> dLdr(batchsize_, hdim_);
   Blob<float> cprev(batchsize_, hdim_);
   GEMM(1.0f, 0.0f, *context, weight_c_hh_->data().T(), &cprev);
@@ -247,11 +251,11 @@ void GRULayer::ComputeGradient(int flag,
         clayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdr, weight_r_hh_->data(), clayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdz, weight_z_hh_->data(), clayer->mutable_grad(this));
-    Add(clayer->grad(this), *update_gate_, clayer->mutable_grad(this));
+    Add(clayer->grad(this), * , clayer->mutable_grad(this));
     // LOG(ERROR) << "grad to prev gru " << Asum(clayer->grad(this));
   }
 
-  if (srclayers.size() == 1)
+  if (srclayers.size() == 1) // kaiping: the first GRU unit
     delete context;
 }
 
