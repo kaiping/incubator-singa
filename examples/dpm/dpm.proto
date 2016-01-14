@@ -1,0 +1,18 @@
+import "job.proto";
+import "common.proto";
+
+message DynamicRecord {
+  optional int32 patient_id = 1;
+  optional int32 exact_time = 2; // TODO(kaiping): change to delta_span
+  repeated int32 observed_idx = 3;
+  repeated float feature_value = 4;
+  optional int32 age = 5;
+  optional int32 education = 6;
+  optional int32 gender = 7;
+}
+
+message OutTimeRecord {
+  optional int32 patient_id = 1;
+  repeated int32 delta_time = 2;
+  repeated float mmscore = 3; // TODO(kaiping): add a "TOTAL11" term representing ADAS-Cog feature
+}
