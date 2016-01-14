@@ -32,7 +32,7 @@ void CharRNNInputLayer::Setup(const LayerProto& conf,
   unroll_len_ = conf.char_rnn_conf().unroll_len();
   datavec_.clear();
   // each unroll layer has a input blob
-  for (int i = 0; i <= unroll_len_; i++) {
+  for (int i = 0; i <= unroll_len_; i++) { // kaiping: this is how char_rnn example manages to give input to all unrolled GRUs
     datavec_.push_back(new Blob<float>(batchsize_));
   }
 }
