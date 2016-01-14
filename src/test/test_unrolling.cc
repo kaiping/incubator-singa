@@ -44,6 +44,8 @@ protected:
 		data_layer1->set_name("data");
 		data_layer1->set_type(kRecordInput);
 
+		// kaiping: this embedding layer is actually "OneHotLayer, shown in http://singa.incubator.apache.org/docs/general-rnn.html"
+		// kaiping: should pay attention to unroll_conn_type
 		LayerProto* embedding_layer1 = net_conf1->add_layer();
 		embedding_layer1->set_name("embedding");
 		embedding_layer1->set_type(kDummy);
@@ -156,6 +158,7 @@ protected:
 };
 
 TEST_F(UnrollingTest, GRULanguageModelTrain) {
+	// kaiping: detailed information for this neural net and use expection for testing
 	NetProto net;
 	net.CopyFrom(job_conf1.neuralnet());
 	NetProto unrolled_net = NeuralNet::Unrolling(net);

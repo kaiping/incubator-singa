@@ -386,11 +386,11 @@ void BPTTWorker::Forward(int step, Phase phase, NeuralNet* net) {
         // wait until param is updated
         for (Param* p : layer->GetParams()) {
           Collect(step, p);
-          Zero(p->mutable_grad());
+          Zero(p->mutable_grad()); // kaiping: set gradients for parameters as 0
         }
       }
       vector<Layer*> src = net->srclayers(layer);
-      if ((phase & kTest) && typeid(*layer) == typeid(RNNDummyLayer)) {
+      if ((phase & kTest) && typeid(*layer) == typeid(RNNDummyLayer)) { // kaiping:RNNDummyLayer is like DataLayer
         CHECK_LE(src.size(), 1);
         auto dummy = dynamic_cast<RNNDummyLayer*>(layer);
         Layer* srclayer = net->name2layer(dummy->srclayer(step));
@@ -406,7 +406,7 @@ void BPTTWorker::Forward(int step, Phase phase, NeuralNet* net) {
       if (layer->unroll_index() == 0 && full_state_ && !begin_) {
         Layer* last = net->last_unroll_layer(layer);
         CHECK(last != nullptr);
-        if (last != layer || (phase & kTest))
+        if (last != layer || (phase & kTest)) // kaiping: Here is already BPTTWorker implemented with last unit connected to first unit
           src.push_back(last);
       }
       // LOG(ERROR) << layer->name() << " forward";
@@ -430,7 +430,7 @@ void BPTTWorker::Forward(int step, Phase phase, NeuralNet* net) {
 void BPTTWorker::Backward(int step, NeuralNet* net) {
   map<string, string> label;
   auto& layers = net->layers();
-  for (auto it = layers.rbegin(); it != layers.rend(); it++) {
+  for (auto it = layers.rbegin(); it != layers.rend(); it++) { // kaiping: traverse in the reverse order
     Layer* layer = *it;
     if (layer->partition_id() == id_) {
       layer->ComputeGradient(kTrain | kBackward | kAggGrad,

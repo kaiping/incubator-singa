@@ -158,7 +158,7 @@ const NetProto NeuralNet::Unrolling(const NetProto& net_conf) {
         sstm1 << i << '#' << param->name();
         param->set_name(sstm1.str());
       }
-      // clear unrolling related fields
+      // clear unrolling related fields (kaiping: as the unrolling operations are already finished)
       unroll_layer->clear_unroll_len();
       unroll_layer->clear_unroll_conn_type();
       unroll_layer->clear_shift();

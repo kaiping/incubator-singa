@@ -69,7 +69,7 @@ class GRULayerTest: public ::testing::Test {
 
     gru1_conf.mutable_gru_conf() -> set_dim_hidden(2);
     gru1_conf.mutable_gru_conf() -> set_bias_term(true);
-    for (int i = 0; i < 9; i ++) {
+    for (int i = 0; i < 9; i ++) { // kaiping: 9 paramters in total, 6 weight matrices and 3 bias terms
       gru1_conf.add_param();
     }
 
@@ -121,7 +121,7 @@ class GRULayerTest: public ::testing::Test {
 
     gru2_conf.mutable_gru_conf() -> set_dim_hidden(2);
     gru2_conf.mutable_gru_conf() -> set_bias_term(true);
-    for (int i = 0; i < 9; i ++) {
+    for (int i = 0; i < 9; i ++) { // kaiping: 9 paramters in total, 6 weight matrices and 3 bias terms
       gru2_conf.add_param();
     }
 
