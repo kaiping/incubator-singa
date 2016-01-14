@@ -41,10 +41,10 @@ void EuclideanLossLayer::Setup(const LayerProto& conf,
 
 void EuclideanLossLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
-  int count = srclayers[0]->data(this).count();
+  int count = srclayers[0]->data(this).count(); // kaiping: Output of InnerProduct Layer Variant
   CHECK_EQ(count, srclayers[1]->data(this).count());
   const float* reconstruct_dptr = srclayers[0]->data(this).cpu_data();
-  const float* input_dptr = srclayers[1]->data(this).cpu_data();
+  const float* input_dptr = srclayers[1]->data(this).cpu_data(); // kaiping: Information of LabelLayer
   float loss = 0;
   for (int i = 0; i < count; i++) {
       loss += (input_dptr[i] - reconstruct_dptr[i]) *
@@ -60,10 +60,10 @@ void EuclideanLossLayer::ComputeGradient(int flag,
   CHECK_EQ(count, srclayers[1]->data(this).count());
   const float* reconstruct_dptr = srclayers[0]->data(this).cpu_data();
   const float* input_dptr = srclayers[1]->data(this).cpu_data();
-  Blob<float>* gsrcblob = srclayers[0]->mutable_grad(this);
+  Blob<float>* gsrcblob = srclayers[0]->mutable_grad(this); // kaiping: from here, we know srclayers[0] is output of InnerProduct Layer Variant
   float* gsrcptr = gsrcblob->mutable_cpu_data();
   for (int i = 0; i < count; i++) {
-    gsrcptr[i] = reconstruct_dptr[i]-input_dptr[i];
+    gsrcptr[i] = reconstruct_dptr[i]-input_dptr[i]; // kaiping: from here we know loss function = (1/2) * (y-gt)^2
   }
   Tensor<cpu, 1> gsrc(gsrcptr, Shape1(gsrcblob->count()));
   gsrc /= srclayers[0]->data(this).shape()[0];
