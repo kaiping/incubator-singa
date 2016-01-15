@@ -1,6 +1,34 @@
 import "job.proto";
 import "common.proto";
 
+// Message that stores parameters used by DynamicDataLayer
+message DynamicDataProto {
+  required string path = 1;
+  optional string backend = 2 [default = "kvfile"];
+}
+
+// Message that stores parameters used by TimeSpanDataLayer
+message TimeSpanDataProto {
+  required string path = 1;
+  optional string backend = 2 [default = "kvfile"];
+}
+
+// Message that stores parameters used by CombinationLayer
+message CombinationProto {
+  // number of outputs for the layer
+  required int32 num_output = 1;
+  // use bias vector or not
+  optional bool bias_term = 30 [default = true];
+  // transpose or not
+  optional bool transpose = 31 [default = false];
+}
+
+extend singa.LayerProto {
+  optional DynamicDataProto dynamic_data_conf = 1001;
+  optional TimeSpanDataProto time_span_data_conf = 1002;
+  optional CombinationProto combination_conf = 1003; // 1st layer to implement
+}
+
 message DynamicRecord {
   optional int32 patient_id = 1;
   optional int32 exact_time = 2; // TODO(kaiping): change to delta_span
