@@ -4,13 +4,15 @@ import "common.proto";
 // Message that stores parameters used by DynamicDataLayer
 message DynamicDataProto {
   required string path = 1;
-  optional string backend = 2 [default = "kvfile"];
+  required int32 batchsize = 2;
+  optional string backend = 3 [default = "kvfile"];
 }
 
 // Message that stores parameters used by TimeSpanDataLayer
 message TimeSpanDataProto {
   required string path = 1;
-  optional string backend = 2 [default = "kvfile"];
+  required int32 batchsize = 2;
+  optional string backend = 3 [default = "kvfile"];
 }
 
 // Message that stores parameters used by CombinationLayer

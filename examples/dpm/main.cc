@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
   driver.RegisterLayer<dpm::DynamicDataLayer, std::string>("kDynamicData");
   driver.RegisterLayer<dpm::TimeSpanDataLayer, std::string>("kTimeSpanData");
   driver.RegisterLayer<dpm::CombinationLayer, std::string>("kCombination");
+  driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMLabel");
 
 
   singa::JobProto jobConf = driver.job_conf();

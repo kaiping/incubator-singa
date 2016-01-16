@@ -38,6 +38,22 @@ using mshadow::Shape1;
 using mshadow::Shape2;
 using mshadow::Tensor;
 
+
+/*******DPMLabelLayer**************/
+void DPMLabelLayer::Setup(const LayerProto &proto,
+                          const vector<Layer*>& srclayers) {
+  InputLayer::Setup(proto, srclayers);
+  CHECK_EQ(srclayers.size(), 1); // DPMLabelLayer has only 1 src layer
+  const auto& src = srclayers[0]->data(this); // TODO(kaiping): to check later if this is correct; data_ is for CombinationLayer, not for DPMLabelLayer
+  batchsize_ = src.shape()[0]; // shape of src layer is [batchsize_, 1], for CombinationLayer
+  hdim_ = 1;
+  data_.Reshape(vector<int>{batchsize_, hdim_});
+}
+
+void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  Copy(* srclayers[0]->label_info(), &data_); // Copy src layer (TimeSpanDataLayer)'s label_info_ to this DPMLabelLayer
+}
+
 /*******CombinationLayer**************/
 
 CombinationLayer::~CombinationLayer() {

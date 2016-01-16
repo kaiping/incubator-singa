@@ -36,9 +36,41 @@ using singa::Blob;
 using singa::Metric;
 
 /**
- * Combination layer as an extension based on InnerproductLayer, which can handle 2 src inputs
+ * TimeSpanDataLayer that get time span information from TimeSpan DataShard
  */
-class CombinationLayer : public NeuronLayer {
+class TimeSpanDataLayer : public singa::InputLayer {
+ public:
+  ~TimeSpanDataLayer();
+  void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
+    // TODO(kaiping): this is for LabelLayer's implementation, to implement later;
+    // TODO(kaiping): LEAVE the label_info() function; Then data_ is still TimeSpan for CombinationLayer
+    Blob<float>* label_info() const {
+    return &label_info_;
+  }
+
+ private:
+  int batchsize_;
+  Blob<float> label_info_;
+};
+
+/**
+ * Label layer for fetching label information from the src input layer (TimeSpanDataLayer) for DPM models.
+ */
+class DPMLabelLayer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers);
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers);
+
+ private:
+  int batchsize_;
+  int hdim_;
+};
+
+/**
+ * CombinationLayer as an extension based on InnerproductLayer, which can handle 2 src inputs
+ */
+class CombinationLayer : public singa::NeuronLayer {
  public:
   ~CombinationLayer();
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
