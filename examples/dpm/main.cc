@@ -37,10 +37,13 @@ int main(int argc, char **argv) {
   bool resume = (resume_pos != -1);
 
   // register all layers for dpm
-  driver.RegisterLayer<dpm::DynamicDataLayer, std::string>("kDynamicData");
-  driver.RegisterLayer<dpm::TimeSpanDataLayer, std::string>("kTimeSpanData");
+  //driver.RegisterLayer<dpm::DynamicDataLayer, std::string>("kDynamicData");
+  //driver.RegisterLayer<dpm::TimeSpanDataLayer, std::string>("kTimeSpanData");
+  driver.RegisterLayer<dpm::DataLayer, std::string>("kData");
+  driver.RegisterLayer<dpm::UnrollLayer, std::string>("kUnroll");
   driver.RegisterLayer<dpm::CombinationLayer, std::string>("kCombination");
-  driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMLabel");
+  driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMLabel"); // (batchsize, 1) for label info
+  driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMTime"); // (batchsize, 1) for delta_T info
 
 
   singa::JobProto jobConf = driver.job_conf();
