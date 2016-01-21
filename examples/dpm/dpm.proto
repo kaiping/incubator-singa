@@ -46,8 +46,6 @@ message DataProto {
   required string label_path = 6;
 }
 
-
-
 // Message that stores parameters used by CombinationLayer
 message CombinationProto {
   // number of outputs for the layer
