@@ -39,21 +39,152 @@ using mshadow::Shape2;
 using mshadow::Tensor;
 
 
+/*******DataLayer**************/
+DataLayer::~DataLayer() {
+  if (store_ != nullptr)
+    delete store_;
+  if (store_ != nullptr)
+    delete store2_;
+}
+
+void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "Setup @ Data";
+  DPMLayer::Setup(conf, srclayers);
+  batchsize_ = conf.GetExtension(data_conf).batchsize();
+  unroll_len_ = conf.GetExtension(data_conf).unroll_len();
+  // e.g., feature_len = 596 (age, edu, gen, lap + feature_values (e.g., 592))
+  feature_len_ = conf.GetExtension(data_conf).feature_len();
+  datavec_.clear();
+  // each unroll layer has a input blob
+  for (int i = 0; i <= unroll_len_; i++) {
+    datavec_.push_back(new Blob<float>(batchsize_,(feature_len_ + 2))); // 2 is for delta_time, mmscore
+  }
+}
+
+void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  string key, value;
+  string key2, value2;
+  DynamicRecord dynamic;
+  OutTimeRecord outtime;
+  LOG(ERROR) << "Comp @ Data ----------";
+  if (store_ == nullptr) {
+    store_ = singa::io::OpenStore(
+        layer_conf_.GetExtension(data_conf).backend(),
+        layer_conf_.GetExtension(data_conf).path(),
+        singa::io::kRead);
+  }
+  if (store2_ == nullptr) {
+    store2_ = singa::io::OpenStore(
+        layer_conf_.GetExtension(data_conf).backend(),
+        layer_conf_.GetExtension(data_conf).label_path(),
+        singa::io::kRead);
+  }
+
+  // initialize data: this is to make sure that GRU units with no records are filled with 0
+  for (int l=0; l<unroll_len_; l++) {
+      float* ptr = datavec_[l]->mutable_cpu_data();
+      memset(ptr, 0, sizeof(float) * datavec_[l]->count());
+  }
+
+  for (int b = 0; b < batchsize_; b++) {
+
+     int l=0; // idx of unroll layers
+     int scnt=0; // number of samples
+
+     while(1) {
+        if (!store_->Read(&key, &value)) {
+           store_->SeekToFirst();
+           CHECK(store_->Read(&key, &value));
+        }
+        dynamic.ParseFromString(value);
+
+        if (dynamic.patient_id() == -1) {
+
+           if (!store2_->Read(&key2, &value2)) {
+              store2_->SeekToFirst();
+              CHECK(store_->Read(&key2, &value2));
+           }
+           outtime.ParseFromString(value2);
+
+           float* ptr = datavec_[unroll_len_-1]->mutable_cpu_data();
+           ptr[b * feature_len_ + feature_len_-4 + 0] = static_cast<float>(outtime.delta_time());
+           ptr[b * feature_len_ + feature_len_-4 + 1] = static_cast<float>(outtime.mmscore());
+
+           LOG(ERROR) << "label: batch " << b << ", dt: " << static_cast<float>(outtime.delta_time()) << ", mm: " << static_cast<float>(outtime.mmscore());
+
+           scnt = 0;
+           break;
+        }
+
+        if (scnt++ == 0) {
+           // Get index of unroll (gru unit). Fill it from the end
+           l = unroll_len_ - static_cast<int>(dynamic.nb_sample());
+        }
+        float* ptr = datavec_[l]->mutable_cpu_data();
+        ptr[b * feature_len_ + 0] = static_cast<float>(dynamic.age());  // feature_len_ is 596 (4 + 592)
+        ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.education());
+        ptr[b * feature_len_ + 2] = static_cast<float>(dynamic.gender());
+        ptr[b * feature_len_ + 3] = static_cast<float>(dynamic.lap_time());
+        for (int i=0; i<feature_len_-4; i++)
+           ptr[b * feature_len_ + 4 + i] = static_cast<float>(dynamic.feature_value(i));
+
+        LOG(ERROR) << "(l,b)=(" << l << "," << b << "), pid " << static_cast<int>(dynamic.patient_id())
+                                                 << ", lap: " << static_cast<int>(dynamic.lap_time());
+
+        l++;
+     }
+  }
+}
+
+/*******UnrollLayer**************/
+void UnrollLayer::Setup(const LayerProto& conf,
+  const vector<Layer*>& srclayers) {
+  DPMLayer::Setup(conf, srclayers);
+  batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
+  LOG(ERROR) << "Batch size for UnrollLayer: " << batchsize_;
+  feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 596 = 4 + 592
+  data_.Reshape(batchsize_/(feature_len_+2), feature_len_);  // reshape data for each unit
+  LOG(ERROR) << "Shape1 for UnrollLayer: " << batchsize_/(feature_len_+2);
+  LOG(ERROR) << "Shape2 for UnrollLayer: " << feature_len_;
+}
+
+void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  float* ptr = data_.mutable_cpu_data();
+  memset(ptr, 0, sizeof(float) * data_.count());
+  const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
+  for (int b = 0; b < batchsize_/(feature_len_+2); b++) {
+      ptr[b * feature_len_ + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
+      ptr[b * feature_len_ + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * feature_len_ + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
+      ptr[b * feature_len_ + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+      for (int i=0; i<feature_len_-4; i++) {
+          ptr[b * feature_len_ + 4 + i] = static_cast<float>( idx[b * feature_len_ + 4 + i] );  // feature_value
+      }
+  }
+}
+
+
+
 /*******DPMLabelLayer**************/
-void DPMLabelLayer::Setup(const LayerProto &proto,
-                          const vector<Layer*>& srclayers) {
+void DPMLabelLayer::Setup(const LayerProto& proto,
+    const vector<Layer*>& srclayers) {
   InputLayer::Setup(proto, srclayers);
   CHECK_EQ(srclayers.size(), 1); // DPMLabelLayer has only 1 src layer
-  const auto& src = srclayers[0]->data(this); // TODO(kaiping): to check later if this is correct; data_ is for CombinationLayer, not for DPMLabelLayer
-  batchsize_ = src.shape()[0]; // shape of src layer is [batchsize_, 1], for CombinationLayer
-  hdim_ = 1;
-  data_.Reshape(vector<int>{batchsize_, hdim_});
+  batchsize_ = srclayers.at(0)->data(0).shape(0);
+  feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();
+  unroll_len_ = dynamic_cast<DataLayer*>(srclayers[0])->unroll_len();
+  data_.Reshape(vector<int>(batchsize_/(feature_len_+1), 2));
 }
 
 void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
-  Copy(* srclayers[0]->label_info(), &data_); // Copy src layer (TimeSpanDataLayer)'s label_info_ to this DPMLabelLayer
+  float* ptr = data_.mutable_cpu_data();
+  // look at the last unroll unit only
+  const float* idx = srclayers[0]->data(unroll_len_-1).cpu_data();
+  for (int b = 0; b < batchsize_/(feature_len_+2); b++) {
+      ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 0]);  // delta_time
+      ptr[b * 2 + 1] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
+  }
 }
-
 /*******CombinationLayer**************/
 
 CombinationLayer::~CombinationLayer() {
