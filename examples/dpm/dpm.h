@@ -35,23 +35,38 @@ using singa::Param;
 using singa::Blob;
 using singa::Metric;
 
+
 /**
- * TimeSpanDataLayer that get time span information from TimeSpan DataShard
+ * Input layer that get read records from two data shards: Dynamic Data Shard and Label Data Shard
  */
-class TimeSpanDataLayer : public singa::InputLayer {
+class DataLayer : public singa::InputLayer {
  public:
-  ~TimeSpanDataLayer();
+  ~DataLayer();
   void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
-    // TODO(kaiping): this is for LabelLayer's implementation, to implement later;
-    // TODO(kaiping): LEAVE the label_info() function; Then data_ is still TimeSpan for CombinationLayer
-    Blob<float>* label_info() const {
-    return &label_info_;
-  }
+
+  int batchsize() const { return batchsize_; }
+  int unroll_len() const { return unroll_len_; }
+  int feature_len() const { return feature_len_; }
 
  private:
-  int batchsize_;
-  Blob<float> label_info_;
+  int batchsize_ = 0;
+  int unroll_len_ = 1;
+  int feature_len_ = 1;
+  singa::io::Store* store_ = nullptr;
+  singa::io::Store* store2_ = nullptr;
+};
+
+/**
+ * Unroll layer that has similar functionality with OneHotLayer in CharRNN example
+ */
+class UnrollLayer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers);
+
+ private:
+  int batchsize_, feature_len_;
 };
 
 /**
@@ -59,12 +74,10 @@ class TimeSpanDataLayer : public singa::InputLayer {
  */
 class DPMLabelLayer : public singa::InputLayer {
  public:
-  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers);
-  void ComputeFeature(int flag, const vector<Layer*>& srclayers);
-
+  void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
  private:
-  int batchsize_;
-  int hdim_;
+  int batchsize_, feature_len_, unroll_len_;
 };
 
 /**
