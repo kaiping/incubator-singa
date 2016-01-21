@@ -77,8 +77,8 @@ message DynamicRecord {
 
 message OutTimeRecord {
   optional int32 patient_id = 1;
-  repeated int32 delta_time = 2;
-  repeated float mmscore = 3; // TODO(kaiping): add a "TOTAL11" term representing ADAS-Cog feature
+  optional int32 delta_time = 2;
+  optional float mmscore = 3; // TODO(kaiping): add a "TOTAL11" term representing ADAS-Cog feature
 }
 
 message DemoRecord { // TODO(kaiping): For next version of experiments, separating 2 kinds of features

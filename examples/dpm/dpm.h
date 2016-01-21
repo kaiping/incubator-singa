@@ -26,6 +26,11 @@
 #include <vector>
 #include "singa/singa.h"
 #include "./dpm.pb.h"
+#include "singa/neuralnet/layer.h"
+#include "singa/proto/job.pb.h"
+#include "singa/proto/common.pb.h"
+#include "singa/utils/context.h"
+#include "singa/utils/singleton.h"
 
 namespace dpm {
 using std::vector;
@@ -34,7 +39,6 @@ using singa::Layer;
 using singa::Param;
 using singa::Blob;
 using singa::Metric;
-
 
 /**
  * Input layer that get read records from two data shards: Dynamic Data Shard and Label Data Shard
@@ -100,8 +104,8 @@ class CombinationLayer : public singa::NeuronLayer {
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
   void ComputeGradient(int flag, const vector<Layer*>& srclayers) override;
-  ConnectionType src_neuron_connection(int k) const override {
-    return kOneToAll;
+  singa::ConnectionType src_neuron_connection(int k) const override {
+    return singa::kOneToAll;
   }
   const std::vector<Param*> GetParams() const override {
     std::vector<Param*> params{weight1_, weight2_, bias_};

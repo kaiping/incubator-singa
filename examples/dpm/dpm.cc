@@ -25,6 +25,9 @@
 #include "mshadow/tensor.h"
 #include "mshadow/tensor_expr.h"
 #include "mshadow/cxxnet_op.h"
+#include "singa/utils/singleton.h"
+#include "singa/utils/math_blob.h"
+#include "singa/utils/singa_op.h"
 #include "./dpm.pb.h"
 
 namespace dpm {
@@ -49,7 +52,7 @@ DataLayer::~DataLayer() {
 
 void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
   //LOG(ERROR) << "Setup @ Data";
-  DPMLayer::Setup(conf, srclayers);
+  InputLayer::Setup(conf, srclayers);
   batchsize_ = conf.GetExtension(data_conf).batchsize();
   unroll_len_ = conf.GetExtension(data_conf).unroll_len();
   // e.g., feature_len = 596 (age, edu, gen, lap + feature_values (e.g., 592))
@@ -139,7 +142,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
 /*******UnrollLayer**************/
 void UnrollLayer::Setup(const LayerProto& conf,
   const vector<Layer*>& srclayers) {
-  DPMLayer::Setup(conf, srclayers);
+  InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
   LOG(ERROR) << "Batch size for UnrollLayer: " << batchsize_;
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 596 = 4 + 592
@@ -218,16 +221,16 @@ CombinationLayer::~CombinationLayer() {
   delete bias_;
 }
 
-void CombinationLayer::Setup(const LayerProto &proto,
+void CombinationLayer::Setup(const LayerProto &conf,
                              const vector<Layer*>& srclayers) {
-  Layer::Setup(proto, srclayers);
+  Layer::Setup(conf, srclayers);
   CHECK_EQ(srclayers.size(), 2); // CombinationLayer has 2 src layers
   const auto& src_gru = srclayers[0]->data(this); // 1st src layer is gru layer
   const auto& src_timespan = srclayers[1]->data(this); // 2nd layer is time_span layer
   batchsize_ = src_gru.shape()[0];
   vdim_ = src_gru.count() / batchsize_;
   hdim_ = conf.GetExtension(combination_conf).num_output();
-  transpose_ = conf.GetExtension(combination_conf).tanspose();
+  transpose_ = conf.GetExtension(combination_conf).transpose();
   //if (partition_dim() > 0)
   //  hdim_ /= srclayers.at(0)->num_partitions();
   data_.Reshape(vector<int>{batchsize_, hdim_});
@@ -263,7 +266,7 @@ void CombinationLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers)
 
 void CombinationLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
   float beta = 0.0f;
-  if(flag & kAggGrad)
+  if(flag & singa::kAggGrad)
     beta = 1.0f;
   MVSumRow(1.0f, beta, grad_, bias_->mutable_grad());
   if(transpose_) {
@@ -281,9 +284,9 @@ void CombinationLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers
 
   if (srclayers[0]->mutable_grad(this) != nullptr) { // Compute the gradient for src_layer: gru layer; Note that gradient for src_layer: Delta_T is DataLayer, should be no grad_
     if (transpose_)
-      MMDot(grad_, weight_->data().T(), srclayers[0]->mutable_grad(this));
+      MMDot(grad_, weight1_->data().T(), srclayers[0]->mutable_grad(this));
     else
-      MMDot(grad_, weight_->data(), srclayers[0]->mutable_grad(this));
+      MMDot(grad_, weight1_->data(), srclayers[0]->mutable_grad(this));
   }
 }
 
