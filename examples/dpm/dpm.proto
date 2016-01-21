@@ -1,19 +1,52 @@
+/************************************************************
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*
+*************************************************************/
+
 import "job.proto";
 import "common.proto";
 
 // Message that stores parameters used by DynamicDataLayer
-message DynamicDataProto {
-  required string path = 1;
-  required int32 batchsize = 2;
-  optional string backend = 3 [default = "kvfile"];
-}
+//message DynamicDataProto {
+//  required string path = 1;
+//  required int32 batchsize = 2;
+//  optional string backend = 3 [default = "kvfile"];
+//}
 
 // Message that stores parameters used by TimeSpanDataLayer
-message TimeSpanDataProto {
+//message TimeSpanDataProto {
+//  required string path = 1;
+//  required int32 batchsize = 2;
+//  optional string backend = 3 [default = "kvfile"];
+//}
+
+// Message that stores parameters used by DataLayer, for fetching both dynamic information and label information
+message DataProto {
   required string path = 1;
   required int32 batchsize = 2;
-  optional string backend = 3 [default = "kvfile"];
+  optional int32 unroll_len = 3;
+  optional int32 feature_len = 4;
+  optional string backend = 5 [default = "kvfile"];
+  required string label_path = 6;
 }
+
+
 
 // Message that stores parameters used by CombinationLayer
 message CombinationProto {
@@ -26,23 +59,33 @@ message CombinationProto {
 }
 
 extend singa.LayerProto {
-  optional DynamicDataProto dynamic_data_conf = 1001;
-  optional TimeSpanDataProto time_span_data_conf = 1002;
-  optional CombinationProto combination_conf = 1003; // 1st layer to implement
+  //optional DynamicDataProto dynamic_data_conf = 1001;
+  //optional TimeSpanDataProto time_span_data_conf = 1002;
+  optional DataProto data_conf = 1001;
+  optional CombinationProto combination_conf = 1002;
 }
 
 message DynamicRecord {
   optional int32 patient_id = 1;
-  optional int32 exact_time = 2; // TODO(kaiping): change to delta_span
+  optional int32 lap_time = 2; // Time span between current record and previous record
   repeated int32 observed_idx = 3;
   repeated float feature_value = 4;
+
   optional int32 age = 5;
   optional int32 education = 6;
   optional int32 gender = 7;
+  optional int32 nb_sample = 8;
 }
 
 message OutTimeRecord {
   optional int32 patient_id = 1;
   repeated int32 delta_time = 2;
   repeated float mmscore = 3; // TODO(kaiping): add a "TOTAL11" term representing ADAS-Cog feature
+}
+
+message DemoRecord { // TODO(kaiping): For next version of experiments, separating 2 kinds of features
+  optional int32 patient_id = 1;
+  optional int32 age = 2;
+  optional int32 education = 3;
+  optional int32 gender = 4;
 }
