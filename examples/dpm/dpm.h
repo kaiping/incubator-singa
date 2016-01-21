@@ -81,6 +81,17 @@ class DPMLabelLayer : public singa::InputLayer {
 };
 
 /**
+ * Time layer for fetching Delta_T information from the src input layer (DataLayer) for DPM models.
+ */
+class DPMTimeLayer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
+ private:
+  int batchsize_, feature_len_, unroll_len_;
+};
+
+/**
  * CombinationLayer as an extension based on InnerproductLayer, which can handle 2 src inputs
  */
 class CombinationLayer : public singa::NeuronLayer {
