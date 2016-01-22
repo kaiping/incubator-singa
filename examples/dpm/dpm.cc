@@ -46,7 +46,7 @@ using mshadow::Tensor;
 DataLayer::~DataLayer() {
   if (store_ != nullptr)
     delete store_;
-  if (store_ != nullptr)
+  if (store2_ != nullptr)
     delete store2_;
 }
 
