@@ -144,11 +144,11 @@ void UnrollLayer::Setup(const LayerProto& conf,
   const vector<Layer*>& srclayers) {
   InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
-  LOG(ERROR) << "Batch size for UnrollLayer: " << batchsize_;
+  //LOG(ERROR) << "Batch size for UnrollLayer: " << batchsize_;
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 596 = 4 + 592
   data_.Reshape(batchsize_, feature_len_);  // reshape data for each unit
-  LOG(ERROR) << "Shape1 for UnrollLayer: " << batchsize_;
-  LOG(ERROR) << "Shape2 for UnrollLayer: " << feature_len_;
+  //LOG(ERROR) << "Shape1 for UnrollLayer: " << batchsize_;
+  //LOG(ERROR) << "Shape2 for UnrollLayer: " << feature_len_;
 }
 
 void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
@@ -174,8 +174,10 @@ void DPMLabelLayer::Setup(const LayerProto& proto,
   batchsize_ = srclayers.at(0)->data(0).shape(0);
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();
   unroll_len_ = dynamic_cast<DataLayer*>(srclayers[0])->unroll_len();
-  data_.Reshape(vector<int>(batchsize_, 1));
+  data_.Reshape(batchsize_, 1);
   LOG(ERROR) << "Batch size for DPMLabelLayer: " << batchsize_;
+  LOG(ERROR) << "Shape for DPMLabelLayer: " << data_.shape().size();
+  LOG(ERROR) << "Shape for DPMLabelLayer: " << data_.shape(0) << "," << data_.shape(1);
 }
 
 void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
@@ -186,7 +188,7 @@ void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
       //ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 0]);  // delta_time
       //ptr[b * 2 + 1] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
     ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
-    LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b * 2 + 0];
+    //LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b * 2 + 0];
   }
 }
 
@@ -198,8 +200,9 @@ void DPMTimeLayer::Setup(const LayerProto& proto,
   batchsize_ = srclayers.at(0)->data(0).shape(0);
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();
   unroll_len_ = dynamic_cast<DataLayer*>(srclayers[0])->unroll_len();
-  data_.Reshape(vector<int>(batchsize_, 1));
+  data_.Reshape(batchsize_, 1);
   LOG(ERROR) << "Batch size for DPMTimeLayer: " << batchsize_;
+  LOG(ERROR) << "Shape for DPMTimeLayer: " << data_.shape(0) << "," << data_.shape(1);
 }
 
 void DPMTimeLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
@@ -210,7 +213,7 @@ void DPMTimeLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
       //ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 0]);  // delta_time
       //ptr[b * 2 + 1] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
     ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 0]);  // delta_time
-    LOG(ERROR) << "data_ for DPMTimeLayer: " << ptr[b * 2 + 0];
+    //LOG(ERROR) << "data_ for DPMTimeLayer: " << ptr[b * 2 + 0];
   }
 }
 /*******CombinationLayer**************/
