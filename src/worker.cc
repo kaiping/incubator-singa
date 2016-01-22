@@ -80,31 +80,39 @@ void Worker::Run() {
     << " start on " << (device >= 0 ? "GPU " + std::to_string(device) : "CPU");
   if (device >= 0)
     context->ActivateDevice(device);
-
+  //LOG(ERROR) << "kaiping: Testing L72";
   auto cluster = Cluster::Get();
   int svr_grp = grp_id_ / cluster->nworker_groups_per_server_group();
   CHECK(cluster->runtime()->JoinSGroup(grp_id_, id_, svr_grp));
+  //LOG(ERROR) << "kaiping: Testing L76";
   step_ = job_conf_.step();
   InitSockets(train_net_);
   InitNetParams(job_conf_, train_net_);
+  //LOG(ERROR) << "kaiping: Testing L80: before TrainOneBatch";
   while (!StopNow(step_)) {
+    //LOG(ERROR) << "kaiping: Testing L82:Entering Loop";
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, train_net_);
       LOG(ERROR) << "Validation @ step " + std::to_string(step_);
       Test(job_conf_.validate_steps(), kVal, val_net_);
+      //LOG(ERROR) << "kaiping: Testing L87: Entering validation?";
     }
     if (TestNow(step_) && test_net_ != nullptr) {
       CollectAll(step_, train_net_);
       LOG(ERROR) << "Test @ step " + std::to_string(step_);
       Test(job_conf_.test_steps(), kTest, test_net_);
+      //LOG(ERROR) << "kaiping: Testing L93: Entering testing?";
     }
     if (CheckpointNow(step_) && grp_id_ == 0) {
       CollectAll(step_, train_net_);
       Checkpoint(step_, Cluster::Get()->checkpoint_folder(), train_net_);
       job_conf_.set_step(step_);
+      //LOG(ERROR) << "kaiping: Testing L99: Entering checkpointing?";
     }
+    //LOG(ERROR) << "kaiping: Testing L101: Just before TrainOneBatch";
     TrainOneBatch(step_, train_net_);
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0) {
+      //LOG(ERROR) << "kaiping: Testing L101 Start to display";
       Display(kTrain | kForward | kBackward,
           "Train @ step " + std::to_string(step_), train_net_);
     }
@@ -418,6 +426,7 @@ void BPWorker::Backward(int step, NeuralNet* net) {
 
 /***************************BPTTWorker*********************************/
 void BPTTWorker::Forward(int step, Phase phase, NeuralNet* net) {
+  //LOG(ERROR) << "Forward phase starts: ";
   map<string, string> label;
   for (auto& layer : net->layers()) {
     if (layer->partition_id() == id_) {
@@ -467,6 +476,7 @@ void BPTTWorker::Forward(int step, Phase phase, NeuralNet* net) {
 }
 
 void BPTTWorker::Backward(int step, NeuralNet* net) {
+  //LOG(ERROR) << "Backward phase starts: ";
   map<string, string> label;
   auto& layers = net->layers();
   for (auto it = layers.rbegin(); it != layers.rend(); it++) { // kaiping: traverse in the reverse order

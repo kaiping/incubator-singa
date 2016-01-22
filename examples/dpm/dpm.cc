@@ -65,6 +65,7 @@ void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
 }
 
 void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "kaiping: DataLayer ComputeFeature()";
   string key, value;
   string key2, value2;
   DynamicRecord dynamic;
@@ -149,6 +150,7 @@ void UnrollLayer::Setup(const LayerProto& conf,
 }
 
 void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "kaiping: kUnrollLayer ComputeFeature()";
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
   const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
@@ -175,6 +177,7 @@ void DPMLabelLayer::Setup(const LayerProto& proto,
 }
 
 void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "kaiping: kDPMLabelLayer ComputeFeature()";
   float* ptr = data_.mutable_cpu_data();
   // look at the last unroll unit only
   const float* idx = srclayers[0]->data(unroll_len_-1).cpu_data();
@@ -182,7 +185,7 @@ void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
       //ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 0]);  // delta_time
       //ptr[b * 2 + 1] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
     ptr[b * 2 + 0] = static_cast<int>(idx[b * feature_len_ + feature_len_-4 + 1]);  // mmscore
-    //LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b * 2 + 0];
+    LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b * 2 + 0];
   }
 }
 
@@ -198,6 +201,7 @@ void DPMTimeLayer::Setup(const LayerProto& proto,
 }
 
 void DPMTimeLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "kaiping: kDPMTimeLayer ComputeFeature()";
   float* ptr = data_.mutable_cpu_data();
   // look at the last unroll unit only
   const float* idx = srclayers[0]->data(unroll_len_-1).cpu_data();
@@ -245,6 +249,7 @@ void CombinationLayer::Setup(const LayerProto &conf,
 }
 
 void CombinationLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "kaiping: CombinationLayer ComputeFeature()";
   Blob<float>* tmp = new Blob<float>(batchsize_, hdim_); // Use "tmp" to store the computation result from TimeSpanUnit
   if(transpose_) {
     MMDot(srclayers[0]->data(this), weight1_->data(), &data_); // First part of data_
