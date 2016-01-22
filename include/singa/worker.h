@@ -305,7 +305,7 @@ class BPTTWorker: public BPWorker {
    * unrolled unit to the first unit in Forward() for the next iteration.
    * currently always feed the last hidden state to the first.
    */
-  bool full_state_ = false;
+  bool full_state_ = false; // But if full_state_ == false, will not feed last to first GRU unit in next iteration
   //!< indicator used for the starting of a new pass of the dataset.
   bool begin_ = false;
 };

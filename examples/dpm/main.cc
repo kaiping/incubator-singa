@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   driver.RegisterLayer<dpm::UnrollLayer, std::string>("kUnroll");
   driver.RegisterLayer<dpm::CombinationLayer, std::string>("kCombination");
   driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMLabel"); // (batchsize, 1) for label info
-  driver.RegisterLayer<dpm::DPMLabelLayer, std::string>("kDPMTime"); // (batchsize, 1) for delta_T info
+  driver.RegisterLayer<dpm::DPMTimeLayer, std::string>("kDPMTime"); // (batchsize, 1) for delta_T info
 
 
   singa::JobProto jobConf = driver.job_conf();
