@@ -90,6 +90,7 @@ void Worker::Run() {
   InitNetParams(job_conf_, train_net_);
   //LOG(ERROR) << "kaiping: Testing L80: before TrainOneBatch";
   while (!StopNow(step_)) {
+    TrainOneBatch(step_, train_net_);
     //LOG(ERROR) << "kaiping: Testing L82:Entering Loop";
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, train_net_);
@@ -98,10 +99,11 @@ void Worker::Run() {
       //LOG(ERROR) << "kaiping: Testing L87: Entering validation?";
     }
     if (TestNow(step_) && test_net_ != nullptr) {
-      CollectAll(step_, train_net_);
+      LOG(ERROR) << "kaiping: Testing L93: Entering testing"; // Already printed out
+      //CollectAll(step_, train_net_);
+      LOG(ERROR) << "kaiping: Testing L93: In the middle of testing";
       LOG(ERROR) << "Test @ step " + std::to_string(step_);
       Test(job_conf_.test_steps(), kTest, test_net_);
-      //LOG(ERROR) << "kaiping: Testing L93: Entering testing?";
     }
     if (CheckpointNow(step_) && grp_id_ == 0) {
       CollectAll(step_, train_net_);
@@ -110,7 +112,7 @@ void Worker::Run() {
       //LOG(ERROR) << "kaiping: Testing L99: Entering checkpointing?";
     }
     //LOG(ERROR) << "kaiping: Testing L101: Just before TrainOneBatch";
-    TrainOneBatch(step_, train_net_);
+    //TrainOneBatch(step_, train_net_);
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0) {
       //LOG(ERROR) << "kaiping: Testing L101 Start to display";
       Display(kTrain | kForward | kBackward,

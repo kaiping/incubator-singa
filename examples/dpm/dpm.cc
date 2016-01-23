@@ -61,6 +61,7 @@ void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
   // each unroll layer has a input blob
   for (int i = 0; i <= unroll_len_; i++) {
     datavec_.push_back(new Blob<float>(batchsize_,feature_len_));
+    //LOG(ERROR) << datavec_[i]->shape().size();
   }
 }
 
