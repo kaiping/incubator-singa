@@ -69,28 +69,21 @@ void Worker::Run() {
     << " start on " << (device >= 0 ? "GPU " + std::to_string(device) : "CPU");
   if (device >= 0)
     context->ActivateDevice(device);
-  //LOG(ERROR) << "kaiping: Testing L72";
   auto cluster = Cluster::Get();
   int svr_grp = grp_id_ / cluster->nworker_groups_per_server_group();
   CHECK(cluster->runtime()->JoinSGroup(grp_id_, id_, svr_grp));
-  //LOG(ERROR) << "kaiping: Testing L76";
   step_ = job_conf_.step();
   InitSockets(train_net_);
   InitNetParams(job_conf_, train_net_);
-  //LOG(ERROR) << "kaiping: Testing L80: before TrainOneBatch";
   while (!StopNow(step_)) {
-    TrainOneBatch(step_, train_net_);
-    //LOG(ERROR) << "kaiping: Testing L82:Entering Loop";
+    //TrainOneBatch(step_, train_net_); // Used in Method1
     if (ValidateNow(step_) && val_net_ != nullptr) {
       CollectAll(step_, train_net_);
       LOG(ERROR) << "Validation @ step " + std::to_string(step_);
       Test(job_conf_.validate_steps(), kVal, val_net_);
-      //LOG(ERROR) << "kaiping: Testing L87: Entering validation?";
     }
     if (TestNow(step_) && test_net_ != nullptr) {
-      LOG(ERROR) << "kaiping: Testing L93: Entering testing"; // Already printed out
-      //CollectAll(step_, train_net_);
-      LOG(ERROR) << "kaiping: Testing L93: In the middle of testing";
+      CollectAll(step_, train_net_); // Comment this in Method1
       LOG(ERROR) << "Test @ step " + std::to_string(step_);
       Test(job_conf_.test_steps(), kTest, test_net_);
     }
@@ -98,12 +91,9 @@ void Worker::Run() {
       CollectAll(step_, train_net_);
       Checkpoint(step_, Cluster::Get()->checkpoint_folder(), train_net_);
       job_conf_.set_step(step_);
-      //LOG(ERROR) << "kaiping: Testing L99: Entering checkpointing?";
     }
-    //LOG(ERROR) << "kaiping: Testing L101: Just before TrainOneBatch";
-    //TrainOneBatch(step_, train_net_);
+    TrainOneBatch(step_, train_net_);
     if (DisplayNow(step_) && grp_id_ == 0 && id_ == 0) {
-      //LOG(ERROR) << "kaiping: Testing L101 Start to display";
       Display(kTrain | kForward | kBackward,
           "Train @ step " + std::to_string(step_), train_net_);
     }
@@ -307,7 +297,7 @@ int Worker::Update(int step, Param* param) {
 int Worker::CollectAll(int step, NeuralNet* net) {
   auto& layers = net->layers();
   for (auto& layer : layers) {
-    if (layer->partition_id() == id_) {
+    if (layer->partition_id() == id_ && layer->unroll_index() == 0) { // Not use the second condition in Method1
       for (Param* p : layer->GetParams()) {
         Collect(step, p);
       }
