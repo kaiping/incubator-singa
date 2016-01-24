@@ -456,10 +456,12 @@ int create_data(const char *input_file, const char *output, int ROUND) {
     // for 1 record (tuple)
     if (rflag == 2) {
 
+      // patients with invalid data (need to check)
       if (pid == 285 || pid == 289
           || pid == 344 || pid == 377 || pid == 695
           || pid == 892 || pid == 995 || pid == 1074 
           || pid == 1092 || pid == 1211 
+          || pid == 1082  
       ) {
 
         f_idx.clear();
@@ -484,7 +486,7 @@ int create_data(const char *input_file, const char *output, int ROUND) {
            float fval = 0.0;
       
            //if (reccnt > 1375 && reccnt < 1495)
-           //  printf("DR: %d %d\n", pid, lt);
+           //printf("DR: %d %d\n", pid, lt);
       
            dynamicRecord.set_patient_id( pid );
            dynamicRecord.set_lap_time( lt );
@@ -549,6 +551,17 @@ int create_data(const char *input_file, const char *output, int ROUND) {
     } 
 
   }
+
+/*
+  if ( ROUND == 1 ) {
+  // additional record for separation
+      dynamicRecord.set_patient_id( -1 );
+      int length = snprintf(key, BUFFER_LEN, "%05d", reccnt++);
+      dynamicRecord.SerializeToString(&value);
+      store->Write(string(key, length), value);
+      dynamicRecord.Clear();
+  }
+*/
 
   fclose(fin);
   store->Flush();
