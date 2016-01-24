@@ -98,8 +98,14 @@ def read_dataset(op):
     et_prev = 'bl' 
     f_cnt = 0
 
+    clee = 0
+
     for line in reader:
- 
+
+      if 'MMSCORE' in line[2]: 
+        clee = 1
+        #print int(line[0]), line[1], line[2], line[3]
+
       if pid != int(line[0]):
         field = {
            'age' : int(demoDict[DEMO[2]][:4]) - int(demoDict[DEMO[1]]),
@@ -130,21 +136,26 @@ def read_dataset(op):
           else:
             fvalDict[cid].append(float(line[3]))
 
-      if not et == line[1]:
 
+      # time changes
+      if not et == line[1]:
+        
         if not (et in ['sc', 'nv', 'f', '']): 
-          if not gettime(et) < arg1:
-            dt = gettime(et)-gettime(et_prev)
-            if not pid in labelDict.keys():
-              labelDict[pid] = [dt]
-            else:
-              labelDict[pid].append(dt)
+          if gettime(et) >= arg1:
+            if clee == 1:
+              dt = gettime(et)-gettime(et_prev)
+              if not pid in labelDict.keys():
+                labelDict[pid] = [dt]
+              else:
+                labelDict[pid].append(dt)
           else:
             f_cnt += 1
             et_prev = et
 
         pid = int(line[0])
         et  = line[1]
+  
+        clee = 0
 
     # compute mu, sigma for features   
     for key, val in fvalDict.items():
@@ -162,6 +173,7 @@ def read_dataset(op):
     f_idx = []
     f_val = []
     out = ''
+    i = 0
 
     for line in reader:
 
@@ -181,8 +193,17 @@ def read_dataset(op):
               if gettime(et) < arg1:
                 out = out + prepare_dynamic(pid, gettime(et)-gettime(et_prev), f_idx, f_val, dt)
               else:
-                out = out + prepare_dynamic(pid, -1, f_idx, f_val, dt)
-  
+                if 41 in f_idx:
+                  out = out + prepare_dynamic(pid, -1, f_idx, f_val, dt)
+                  print pid, int(f_val[f_idx.index(41)])
+                '''
+                if 41 in f_idx:
+                  print pid, i, dt, int(f_val[f_idx.index(41)])
+                else:
+                  print pid, i, dt, 'none'
+                i += 1
+                '''
+ 
           pid = int(line[0])
           et_prev = et
           et  = line[1]
@@ -211,6 +232,7 @@ def read_dataset(op):
               f_val.append(mu)
 
       else:
+        # replicate data
         if pid in labelDict.keys(): 
           for i in range(len(labelDict[pid])):
             wf.write(out)
@@ -219,6 +241,7 @@ def read_dataset(op):
         pid = int(line[0])
         et = 'bl' 
         et_prev = 'bl'
+        i = 0
 
 
 def gettime(et):

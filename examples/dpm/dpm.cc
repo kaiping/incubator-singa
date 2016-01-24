@@ -98,6 +98,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
         if (!store_->Read(&key, &value)) {
            store_->SeekToFirst();
            CHECK(store_->Read(&key, &value));
+           store2_->SeekToFirst();
         }
         dynamic.ParseFromString(value);
 
@@ -105,7 +106,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
 
            if (!store2_->Read(&key2, &value2)) {
               store2_->SeekToFirst();
-              CHECK(store_->Read(&key2, &value2));
+              CHECK(store2_->Read(&key2, &value2));
            }
            outtime.ParseFromString(value2);
 
