@@ -114,7 +114,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
            ptr[b * feature_len_ + feature_len_ - 2 + 0] = static_cast<float>(outtime.delta_time());
            ptr[b * feature_len_ + feature_len_ - 2 + 1] = static_cast<float>(outtime.mmscore());
 
-           LOG(ERROR) << "label: batch " << b << ", dt: " << static_cast<float>(outtime.delta_time()) << ", mm: " << static_cast<float>(outtime.mmscore());
+           //LOG(ERROR) << "label: batch " << b << ", dt: " << static_cast<float>(outtime.delta_time()) << ", mm: " << static_cast<float>(outtime.mmscore());
 
            scnt = 0;
            break;
@@ -129,11 +129,13 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
         ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.education());
         ptr[b * feature_len_ + 2] = static_cast<float>(dynamic.gender());
         ptr[b * feature_len_ + 3] = static_cast<float>(dynamic.lap_time());
-        for (int i=4; i<feature_len_-2; i++)
-           ptr[b * feature_len_ + i] = static_cast<float>(dynamic.feature_value(i-4));
+        for (int i=4; i<feature_len_-2; i++) {
+            ptr[b * feature_len_ + i] = static_cast<float>(dynamic.feature_value(i - 4));
+            LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " Detailed features: " << static_cast<float>(dynamic.feature_value(i - 4));
+        }
 
-        LOG(ERROR) << "(l,b)=(" << l << "," << b << "), pid " << static_cast<int>(dynamic.patient_id())
-                                                 << ", lap: " << static_cast<int>(dynamic.lap_time());
+        //LOG(ERROR) << "(l,b)=(" << l << "," << b << "), pid " << static_cast<int>(dynamic.patient_id())
+                                                 //<< ", lap: " << static_cast<int>(dynamic.lap_time());
 
         l++;
      }
@@ -146,20 +148,20 @@ void UnrollLayer::Setup(const LayerProto& conf,
   InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 598 = 4 + 592 + 2
-  data_.Reshape(batchsize_, feature_len_);  // reshape data for each unit
+  data_.Reshape(batchsize_, feature_len_ - 2);  // reshape data for each unit
 }
 
 void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
   const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
-  for (int b = 0; b < batchsize_; b++) {
-      ptr[b * feature_len_ + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
-      ptr[b * feature_len_ + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
-      ptr[b * feature_len_ + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
-      ptr[b * feature_len_ + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
-      for (int i=4; i<feature_len_-2; i++) {
-          ptr[b * feature_len_ + i] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
+  for (int b = 0; b < batchsize_; b++) { // 4 demographical features
+      ptr[b * (feature_len_ - 2) + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
+      ptr[b * (feature_len_ - 2) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * (feature_len_ - 2) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
+      ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+      for (int i=4; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
+          ptr[b * (feature_len_ - 2) + i] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
       }
   }
 }
@@ -181,7 +183,7 @@ void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   const float* idx = srclayers[0]->data(unroll_len_-1).cpu_data();
   for (int b = 0; b < batchsize_; b++) {
     ptr[b] = static_cast<int>(idx[b * feature_len_ + feature_len_ - 1]);  // mmscore
-    LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b];
+    //LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b];
   }
 }
 
@@ -202,7 +204,7 @@ void DPMTimeLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   const float* idx = srclayers[0]->data(unroll_len_-1).cpu_data();
   for (int b = 0; b < batchsize_; b++) {
     ptr[b] = static_cast<int>(idx[b * feature_len_ + feature_len_ - 2]);  // delta_time
-    LOG(ERROR) << "data_ for DPMTimeLayer: " << ptr[b];
+    //LOG(ERROR) << "data_ for DPMTimeLayer: " << ptr[b];
   }
 }
 /*******CombinationLayer**************/
@@ -254,6 +256,26 @@ void CombinationLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers)
   AXPY(1.0f, *tmp, &data_); // Combine 2 parts
   MVAddRow(bias_->data(), &data_); // Add bias
   delete tmp;
+  const float* printout = weight2_->data().cpu_data();
+  LOG(ERROR) << "Weight info: ";
+  LOG(ERROR) << "Weight info size: " << weight2_->data().shape().size();
+  LOG(ERROR) << "Weight info shape(0): " << weight2_->data().shape(0);
+  LOG(ERROR) << "Weight info shape(1): " << weight2_->data().shape(1);
+  for(int i = 0; i < weight2_->data().shape(0); i++) {
+      for(int j = 0; j < weight2_->data().shape(1); j++) {
+          LOG(ERROR) << "Weight info @ ( " << i << " , " << j << " ) is:   " << (*(printout + i * weight2_->data().shape(1) + j));
+      }
+  }
+  LOG(ERROR) << "Bias info: ";
+  LOG(ERROR) << "Bias info size: " << bias_->data().shape().size();
+  LOG(ERROR) << "Bias info shape(0): " << bias_->data().shape(0);
+  const float* printbias = bias_->data().cpu_data();
+  for(int k = 0; k < bias_->data().shape(0); k++) {
+      LOG(ERROR) << "Bias info @ " << k << " is:   " << (*(printbias + k));
+  }
+  //LOG(ERROR) << "Weight info: ";
+  //LOG(ERROR) << "Weight information for delta_T: " << weight2_->data();
+  //LOG(ERROR) << "Bias information for delta_T: " << bias_->data();
 }
 
 void CombinationLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
