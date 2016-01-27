@@ -67,8 +67,9 @@ void InnerProductLayer::ComputeFeature(int flag,
 void InnerProductLayer::ComputeGradient(int flag,
     const vector<Layer*>& srclayers) {
   float beta = 0.0f;
-  if (flag & kAggGrad)
-    beta = 1.0f;
+  //if (flag & kAggGrad)
+  //  beta = 1.0f;
+  //LOG(ERROR) << "Beta information for InnerProduct layer: " << beta; // the output is "1", after change, output is "1"
   MVSumRow(1.0f, beta, grad_, bias_->mutable_grad());
   if (transpose_)
     GEMM(1.0f, beta, srclayers[0]->data(this).T(), grad_,

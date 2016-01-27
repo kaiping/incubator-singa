@@ -299,7 +299,7 @@ def prepare_dynamic(pid, lt, idx, val, dt):
   return ret
 
 def datasetIndex( did, ratio ):
-  total_sample = 558
+  total_sample = 1529
   start = (did - 1) * int(total_sample*ratio) 
   end = start + int(total_sample*ratio) - 1
   if end >= total_sample: end = total_sample
