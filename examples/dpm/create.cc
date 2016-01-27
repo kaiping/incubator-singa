@@ -385,7 +385,7 @@ int create_data(const char *input_file, const char *output, int ROUND) {
   int line = 0;
   int wflag = 0, rflag = 0, eofflag = 0;
   int reccnt = 0, ltcnt=0, democnt = 0, otimecnt = 0;
-  int csv_num_line = 5; // # of lines for a patinet in dynamic.csv
+  int csv_num_line = 5; // # of lines for a patient in dynamic.csv
 
 
   char key[BUFFER_LEN];

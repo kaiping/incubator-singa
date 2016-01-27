@@ -57,10 +57,13 @@ void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
   unroll_len_ = conf.GetExtension(data_conf).unroll_len();
   // e.g., feature_len = 598 (age, edu, gen, lap + feature_values (e.g., 592) + deltaT + MMSCORE)
   feature_len_ = conf.GetExtension(data_conf).feature_len();
+  //LOG(ERROR) << "Batch size: " << batchsize_;
+  //LOG(ERROR) << "Unroll length: " << unroll_len_;
+  //LOG(ERROR) << "Feature length: " << feature_len_;
   datavec_.clear();
   // each unroll layer has a input blob
   for (int i = 0; i <= unroll_len_; i++) {
-    datavec_.push_back(new Blob<float>(batchsize_,feature_len_));
+    datavec_.push_back(new Blob<float>(batchsize_,feature_len_)); // including all features: 598-dim
   }
 }
 
@@ -69,7 +72,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   string key2, value2;
   DynamicRecord dynamic;
   OutTimeRecord outtime;
-  LOG(ERROR) << "Comp @ Data ----------";
+  //LOG(ERROR) << "Comp @ Data ----------";
   if (store_ == nullptr) {
     store_ = singa::io::OpenStore(
         layer_conf_.GetExtension(data_conf).backend(),
@@ -92,7 +95,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   for (int b = 0; b < batchsize_; b++) {
 
      int l=0; // idx of unroll layers
-     int scnt=0; // number of samples
+     int scnt=0; // number of samples for one patient
 
      while(1) {
         if (!store_->Read(&key, &value)) {
@@ -102,7 +105,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
         }
         dynamic.ParseFromString(value);
 
-        if (dynamic.patient_id() == -1) {
+        if (dynamic.patient_id() == -1) { // dummy record to separate each 2 patients' information
 
            if (!store2_->Read(&key2, &value2)) {
               store2_->SeekToFirst();
@@ -110,17 +113,17 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
            }
            outtime.ParseFromString(value2);
 
-           float* ptr = datavec_[unroll_len_-1]->mutable_cpu_data();
-           ptr[b * feature_len_ + feature_len_ - 2 + 0] = static_cast<float>(outtime.delta_time());
-           ptr[b * feature_len_ + feature_len_ - 2 + 1] = static_cast<float>(outtime.mmscore());
+           float* ptr = datavec_[unroll_len_-1]->mutable_cpu_data(); // Only store label info in last unrolled unit
+           ptr[b * feature_len_ + feature_len_ - 2 + 0] = static_cast<float>(outtime.delta_time()); // the second last feature
+           ptr[b * feature_len_ + feature_len_ - 2 + 1] = static_cast<float>(outtime.mmscore()); // the last feature
 
            //LOG(ERROR) << "label: batch " << b << ", dt: " << static_cast<float>(outtime.delta_time()) << ", mm: " << static_cast<float>(outtime.mmscore());
 
            scnt = 0;
-           break;
+           break; // information for 1 patient is finished
         }
 
-        if (scnt++ == 0) {
+        if (scnt++ == 0) { // A new patient
            // Get index of unroll (gru unit). Fill it from the end
            l = unroll_len_ - static_cast<int>(dynamic.nb_sample());
         }
@@ -136,7 +139,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
         for (int k=0; k<dynamic.feature_value_size(); k++) {
            int idx = dynamic.observed_idx(k);
            ptr[b * feature_len_ + 4 + idx] = static_cast<float>(dynamic.feature_value(k));
-           LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " Detailed features: " << "(l,b)=(" << l << "," << b << ")" << static_cast<float>(dynamic.feature_value(k));
+           //LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " Detailed features: " << "(l,b)=(" << l << "," << b << ")" << static_cast<float>(dynamic.feature_value(k));
         }
 //        for (int i=4; i<feature_len_-2; i++) {
 //            ptr[b * feature_len_ + i] = static_cast<float>(dynamic.feature_value(i - 4));
@@ -258,7 +261,7 @@ void CombinationLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers)
     MMDot(srclayers[0]->data(this), weight1_->data(), &data_); // First part of data_
     MMDot(srclayers[1]->data(this), weight2_->data(), tmp); // Second part of data_
   }
-  else {
+  else {// our case
     MMDot(srclayers[0]->data(this), weight1_->data().T(), &data_); // First part of data_
     MMDot(srclayers[1]->data(this), weight2_->data().T(), tmp); // Second part of data_
   }
@@ -289,8 +292,10 @@ void CombinationLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers)
 
 void CombinationLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers) {
   float beta = 0.0f;
-  if(flag & singa::kAggGrad)
-    beta = 1.0f;
+  //if(flag & singa::kAggGrad)
+  //  beta = 1.0f;
+  //LOG(ERROR) << "Beta info: " << beta; // the output beta is "1", after change, output is "1"
+  // Compute gradients for parameters
   MVSumRow(1.0f, beta, grad_, bias_->mutable_grad());
   if(transpose_) {
     GEMM(1.0f, beta, srclayers[0]->data(this).T(), grad_,
@@ -298,7 +303,7 @@ void CombinationLayer::ComputeGradient(int flag, const vector<Layer*>& srclayers
     GEMM(1.0f, beta, srclayers[1]->data(this).T(), grad_,
          weight2_->mutable_grad());
   }
-  else {
+  else { // our case
     GEMM(1.0f, beta, grad_.T(), srclayers[0]->data(this),
          weight1_->mutable_grad());
     GEMM(1.0f, beta, grad_.T(), srclayers[1]->data(this),
