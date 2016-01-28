@@ -49,6 +49,7 @@ void EuclideanLossLayer::ComputeFeature(int flag,
   for (int i = 0; i < count; i++) {
       loss += (input_dptr[i] - reconstruct_dptr[i]) *
         (input_dptr[i] - reconstruct_dptr[i]);
+    //LOG(ERROR) << "******Loss Layer****** Ground truth value, Estimate value:  " << input_dptr[i] << "   " << reconstruct_dptr[i];
   }
   loss_ += loss / srclayers[0]->data(this).shape()[0];
   counter_++;
