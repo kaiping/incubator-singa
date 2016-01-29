@@ -22,22 +22,22 @@
 MSHADOW_FLAGS :=-DMSHADOW_USE_CUDA=0 -DMSHADOW_USE_CBLAS=1 -DMSHADOW_USE_MKL=0
 
 libs :=singa glog protobuf
-data_dir  = ckd_1year
-data_name = dymamic.csv
-train_name = dpm_train
-test_name  = dpm_test
+#data_dir  = ckd_1yeaor
+data_dir  = .
+#data_name = dymamic.csv
+train_name = train.shard
+test_name  = test.shard
 dirshards = train_shard test_shard
-feature_size = 592
-cut_point = 28 
+#feature_size = 592
+#cut_point = 28
 
 create:
 	protoc --proto_path=../../src/proto --proto_path=. --cpp_out=. dpm.proto
-	$(CXX) create.cc dpm.pb.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include -I../../include/singa/proto \
+	$(CXX) create_shard.cc dpm.pb.cc -std=c++11 -lsinga -lprotobuf -lzookeeper_mt -lglog -I../../include -I../../include/singa/proto \
 		-L../../.libs/ -L/usr/local/lib -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-rpath=../../.libs/ \
-		-o create.bin
+		-o create_shard.bin
 	#for d in $(dirshards); do mkdir -p $${d}; done
-	./create.bin -debug -dpm $(data_dir)/$(data_name) -train $(data_dir)/$(train_name) -test $(data_dir)/$(test_name) \
-				 -feature_size $(feature_size) -cut_point $(cut_point)
+	./create_shard.bin -debug -dpm $(data_dir)/$(data_name) -train $(data_dir)/$(train_name) -test $(data_dir)/$(test_name)
 
 dpm:
 	protoc --proto_path=../../src/proto --proto_path=. --cpp_out=. dpm.proto
