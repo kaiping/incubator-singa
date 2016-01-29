@@ -150,10 +150,19 @@ if __name__ == '__main__':
 
         # prepare input part
         pre_viscode_num = 0
-        observed_idx = []
-        feature_value = []
         input_records = []
+
+        # prepare constant features
+        norm_const_fea = constant_features[rid]
+        for idx in range(len(constant_fea_name)):
+            f_mean, f_std = fea_mean_std[constant_fea_name[idx]]
+            f_val = (norm_const_fea[idx] - f_mean) / f_std if abs(f_std) > np.finfo(np.float32).eps else 0.0
+            norm_const_fea[idx] = f_val
+        norm_const_fea = [str(item) for item in norm_const_fea]
+
         for viscode, viscode_num in pre_cut:
+            observed_idx = []
+            feature_value = []
             lap_time = str(viscode_num - pre_viscode_num)
             pre_viscode_num = viscode_num
             for k, v in data[rid][viscode].iteritems():
@@ -165,12 +174,6 @@ if __name__ == '__main__':
                         observed_idx.append(str(feature_idx[k]))
                     except ValueError:
                         pass
-            norm_const_fea = constant_features[rid]
-            for idx in range(len(constant_fea_name)):
-                f_mean, f_std = fea_mean_std[constant_fea_name[idx]]
-                f_val = (norm_const_fea[idx] - f_mean) / f_std if abs(f_std) > np.finfo(np.float32).eps else 0.0
-                norm_const_fea[idx] = f_val
-            norm_const_fea = [str(item) for item in norm_const_fea]
 
             record_items = [rid, lap_time, ctrlD.join(observed_idx), ctrlD.join(feature_value)] + norm_const_fea
             input_records.append(ctrlC.join(record_items))
