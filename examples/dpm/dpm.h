@@ -76,9 +76,9 @@ class UnrollLayer : public singa::InputLayer {
 /**
  * DPMGru layer which is modified to consider time information
  */
-class GRULayer : public NeuronLayer {
+class DPMGruLayer : public NeuronLayer {
  public:
-  ~GRULayer();
+  ~DPMGruLayer();
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
   void ComputeGradient(int flag, const vector<Layer*>& srclayers) override;
@@ -86,25 +86,26 @@ class GRULayer : public NeuronLayer {
     return kOneToMany;
   }
   Blob<float>* mutable_grad(const Layer* from) override {
-    if (typeid(*from) == typeid(GRULayer))
+    if (typeid(*from) == typeid(DPMGruLayer))
       return gradvec_[1];
     else
       return gradvec_[0];
   }
   const Blob<float>& grad(const Layer* from) override {
-    if (typeid(*from) == typeid(GRULayer))
+    if (typeid(*from) == typeid(DPMGruLayer))
       return *gradvec_[1];
     else
       return *gradvec_[0];
   }
   const std::vector<Param*> GetParams() const override {
     std::vector<Param*> params{weight_z_hx_, weight_r_hx_, weight_c_hx_,
-      weight_z_hh_, weight_r_hh_, weight_c_hh_};
+      weight_z_hh_, weight_r_hh_, weight_c_hh_, weight_theta_};
 
-    if (bias_z_ != nullptr && bias_r_ != nullptr && bias_c_ != nullptr) {
+    if (bias_z_ != nullptr && bias_r_ != nullptr && bias_c_ != nullptr && bias_theta_ != nullptr) {
       params.push_back(bias_z_);
       params.push_back(bias_r_);
       params.push_back(bias_c_);
+      params.push_back(bias_theta_);
     }
     return params;
   }
@@ -112,10 +113,11 @@ class GRULayer : public NeuronLayer {
  private:
   int batchsize_;  // batch size
   int vdim_, hdim_;  // dimensions
-  Blob<float> *update_gate_, *reset_gate_, *new_memory_;
+  Blob<float> *update_gate_, *reset_gate_, *new_memory_, *new_update_gate_, *time_part_;
   Param *weight_z_hx_, *weight_z_hh_, *bias_z_;  // update gate
   Param *weight_r_hx_, *weight_r_hh_, *bias_r_;  // reset gate
   Param *weight_c_hx_, *weight_c_hh_, *bias_c_;  // new memory
+  Param *weight_theta_, *bias_theta_;  // handling time span between each two input records
 };
 
 
