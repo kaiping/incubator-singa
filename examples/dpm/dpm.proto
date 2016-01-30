@@ -46,6 +46,14 @@ message DataProto {
   required string label_path = 6;
 }
 
+// Message that stores parameters used by modified gru, our DPMGruLayer
+message DPMGruProto {
+  // dimension of hidden state for the layer
+  required int32 dim_hidden = 1;
+  // use bias vector or not
+  optional bool bias_term = 2 [default = true];
+}
+
 // Message that stores parameters used by CombinationLayer
 message CombinationProto {
   // number of outputs for the layer
@@ -60,7 +68,8 @@ extend singa.LayerProto {
   //optional DynamicDataProto dynamic_data_conf = 1001;
   //optional TimeSpanDataProto time_span_data_conf = 1002;
   optional DataProto data_conf = 1001;
-  optional CombinationProto combination_conf = 1002;
+  optional DPMGruProto dpmgru_conf = 1002;
+  optional CombinationProto combination_conf = 1003;
 }
 
 message DynamicRecord {
