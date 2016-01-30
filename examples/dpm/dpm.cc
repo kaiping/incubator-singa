@@ -292,7 +292,7 @@ void DPMGruLayer::Setup(const LayerProto& conf,
   weight_r_hh_->Setup(vector<int>{hdim_, hdim_});
   weight_c_hh_->Setup(vector<int>{hdim_, hdim_});
   // set up weight_theta_
-  weight_theta_->Setup(vector<int>{1, hdim_});
+  weight_theta_->Setup(vector<int>{hdim_, 1});
 
   if (conf.param_size() > 7) {
     bias_z_->Setup(vector<int>{hdim_});
@@ -322,22 +322,45 @@ void DPMGruLayer::ComputeFeature(int flag,
   Blob<float> *w_c_hx_t = Transpose(weight_c_hx_->data());
   Blob<float> *w_c_hh_t = Transpose(weight_c_hh_->data());
 
+  Blob<float> *w_theta_t = Transpose(weight_theta_->data());
+
   // Prepare the data input and the context
   const auto& src = srclayers[0]->data(this);
   const Blob<float> *context;
   if (srclayers.size() == 1) {  // only have data input
-    context = new Blob<float>(batchsize_, hdim_);
+    context = new Blob<float>(batchsize_, hdim_); // ? (kaiping): When is this initialized (to all 0)?
   } else {  // have data input & context
     context = &srclayers[1]->data(this);
   }
 
-  // Compute the update gate
+  const Blob<float> *lap = srclayers[0]->laptime_info(); // information related to lap time
+  LOG(ERROR) << "Shape size for laptime_info_: " << (*lap).shape().size(); // for testing
+  LOG(ERROR) << "Shape 1 for laptime_info_: " << (*lap).shape(0);
+  LOG(ERROR) << "Shape 2 for laptime_info_: " << (*lap).shape(1);
+
+  // Compute the update gate, new update gate and time part information
+  // Original update gate
   GEMM(1.0f, 0.0f, src, *w_z_hx_t, update_gate_);
   if (bias_z_ != nullptr)
     MVAddRow(1.0f, 1.0f, bias_z_->data(), update_gate_);
   GEMM(1.0f, 1.0f, *context, *w_z_hh_t, update_gate_);
   Map<op::Sigmoid<float>, float>(*update_gate_, update_gate_);
   // LOG(ERROR) << "Update Gate: " << update_gate_->cpu_data()[0];
+
+  // Time part computation & new update gate computation
+  const Blob<float> *one; // obtain a blob with shape (batchsize_, hdim_), all values are 1
+  one = new Blob<float>(batchsize_, hdim_);
+  float* one_ptr = one->mutable_cpu_data();
+  for (int i = 0; i < one->count(); i++)
+      one_ptr[i] = 1.0f;
+
+  GEMM(1.0f, 0.0f, *lap, *w_theta_t, time_part_);
+  if (bias_theta_ != nullptr)
+    MVAddRow(1.0f, 1.0f, bias_theta_->data(), time_part_);
+  Map<op::Sigmoid<float>, float>(*time_part_, time_part_);
+  Sub(*one, *time_part_, time_part_);
+  Mult(*update_gate_, *time_part_, new_update_gate_);
+
   // Compute the reset gate
   GEMM(1.0f, 0.0f, src, *w_r_hx_t, reset_gate_);
   if (bias_r_ != nullptr)
@@ -354,12 +377,12 @@ void DPMGruLayer::ComputeFeature(int flag,
   Map<op::Tanh<float>, float>(*new_memory_, new_memory_);
 
   Sub(*context, *new_memory_, &data_);
-  Mult(data_, *update_gate_, &data_);
+  Mult(data_, *new_update_gate_, &data_);
   Add(data_, *new_memory_, &data_);
 
   // delete the pointers
   if (srclayers.size() == 1)
-    delete context;
+    delete context; // actually not used
 
   delete w_z_hx_t;
   delete w_z_hh_t;
@@ -367,6 +390,9 @@ void DPMGruLayer::ComputeFeature(int flag,
   delete w_r_hh_t;
   delete w_c_hx_t;
   delete w_c_hh_t;
+  delete w_theta_t;
+  delete one;
+  delete lap;
 }
 
 void DPMGruLayer::ComputeGradient(int flag,
