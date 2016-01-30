@@ -189,35 +189,37 @@ void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
 }
 
 /*******DPMGruLayer**************/
-GRULayer::~GRULayer() {
-  delete weight_z_hx_;
+DPMGruLayer::~DPMGruLayer() {
+  delete weight_z_hx_; // params for update gate
   delete weight_z_hh_;
   delete bias_z_;
 
-  delete weight_r_hx_;
+  delete weight_r_hx_; // params for reset gate
   delete weight_r_hh_;
   delete bias_r_;
 
-  delete weight_c_hx_;
+  delete weight_c_hx_; // params for new memory
   delete weight_c_hh_;
   delete bias_c_;
 
-  delete update_gate_;
+  delete update_gate_; // gate information
   delete reset_gate_;
   delete new_memory_;
+  delete new_update_gate_; // specific for time-related information
+  delete time_part_;
   // delete reset_context_;
 }
 
-void GRULayer::Setup(const LayerProto& conf,
+void DPMGruLayer::Setup(const LayerProto& conf,
     const vector<Layer*>& srclayers) {
   Layer::Setup(conf, srclayers);
-  CHECK_LE(srclayers.size(), 2);
-  const auto& src = srclayers[0]->data(this);
+  CHECK_LE(srclayers.size(), 2); // number of src layers no larger than 2
+  const auto& src = srclayers[0]->data(this); // input from UnrollLayer
 
   batchsize_ = src.shape()[0];  // size of batch
   vdim_ = src.count() / (batchsize_);  // dimension of input
 
-  hdim_ = layer_conf_.gru_conf().dim_hidden();  // dimension of hidden state
+  hdim_ = layer_conf_.GetExtension(dpmgru_conf).dim_hidden();  // dimension of hidden state
 
   data_.Reshape(vector<int>{batchsize_, hdim_});
   grad_.ReshapeLike(data_);
@@ -233,10 +235,15 @@ void GRULayer::Setup(const LayerProto& conf,
   weight_r_hh_ = Param::Create(conf.param(4));
   weight_c_hh_ = Param::Create(conf.param(5));
 
-  if (conf.param_size() > 6) {
-    bias_z_ = Param::Create(conf.param(6));
-    bias_r_ = Param::Create(conf.param(7));
-    bias_c_ = Param::Create(conf.param(8));
+  // Initialize the parameters specific for processing time information
+  weight_theta_ = Param::Create(conf.param(6));
+
+  if (conf.param_size() > 7) {
+    bias_z_ = Param::Create(conf.param(7));
+    bias_r_ = Param::Create(conf.param(8));
+    bias_c_ = Param::Create(conf.param(9));
+    // Initialize the parameters specific for processing time information
+    bias_theta_ = Param::Create(conf.param(10));
   }
 
   weight_z_hx_->Setup(vector<int>{hdim_, vdim_});
@@ -246,19 +253,26 @@ void GRULayer::Setup(const LayerProto& conf,
   weight_z_hh_->Setup(vector<int>{hdim_, hdim_});
   weight_r_hh_->Setup(vector<int>{hdim_, hdim_});
   weight_c_hh_->Setup(vector<int>{hdim_, hdim_});
+  // set up weight_theta_
+  weight_theta_->Setup(vector<int>{1, hdim_});
 
-  if (conf.param_size() > 6) {
+  if (conf.param_size() > 7) {
     bias_z_->Setup(vector<int>{hdim_});
     bias_r_->Setup(vector<int>{hdim_});
     bias_c_->Setup(vector<int>{hdim_});
+    // set up bias_theta_
+    bias_theta_->Setup(vector<int>{hdim_});
   }
 
   update_gate_ = new Blob<float>(batchsize_, hdim_);
   reset_gate_ = new Blob<float>(batchsize_, hdim_);
   new_memory_ = new Blob<float>(batchsize_, hdim_);
+  // set up new gate information for processing time
+  time_part_ = new Blob<float>(batchsize_, hdim_);
+  new_update_gate_ = new Blob<float>(batchsize_, hdim_);
 }
 
-void GRULayer::ComputeFeature(int flag,
+void DPMGruLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
   CHECK_LE(srclayers.size(), 2);
 
@@ -317,7 +331,7 @@ void GRULayer::ComputeFeature(int flag,
   delete w_c_hh_t;
 }
 
-void GRULayer::ComputeGradient(int flag,
+void DPMGruLayer::ComputeGradient(int flag,
     const vector<Layer*>& srclayers) {
   CHECK_LE(srclayers.size(), 2);
   // agg grad from two dst layers, gradvec_[0] is grad_ (computed as src_grad in the direct upper layer)
@@ -416,9 +430,6 @@ void GRULayer::ComputeGradient(int flag,
   if (srclayers.size() == 1) // kaiping: the first GRU unit
     delete context;
 }
-
-
-
 
 
 /*******DPMLabelLayer**************/
