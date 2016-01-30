@@ -188,6 +188,44 @@ void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   }
 }
 
+/*******TimeUnrollLayer**************/
+void TimeUnrollLayer::Setup(const LayerProto& conf,
+  const vector<Layer*>& srclayers) {
+  InputLayer::Setup(conf, srclayers);
+  batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
+  feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 598 = 4 (3 demo + lap_time) + 592 + 2
+  data_.Reshape(batchsize_, feature_len_ - 3);  // reshape data for each unit, do not include lap_time info in data_
+  laptime_info_.Reshape(batchsize_, 1); // for 1 patient in 1 Unroll part/GRU part, only 1 dimension of feature
+}
+
+void TimeUnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  // fill information in data_
+  float* ptr = data_.mutable_cpu_data();
+  memset(ptr, 0, sizeof(float) * data_.count());
+  // fill information in laptime_info_
+  float* ptr_time = laptime_info_.mutable_cpu_data();
+  memset(ptr_time, 0, sizeof(float) * laptime_info_.count());
+  // data info from src: DataLayer
+  const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
+  for (int b = 0; b < batchsize_; b++) { // 3 demographical features + lap_time information
+      ptr[b * (feature_len_ - 3) + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
+      ptr[b * (feature_len_ - 3) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
+      //ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time not included in data_
+
+      // fill information into laptime_info_
+      ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+//      LOG(ERROR) << "data_ for UnrollLayer: age " <<ptr[b * (feature_len_ - 2) + 0]  ;
+//      LOG(ERROR) << "data_ for UnrollLayer: edu " <<ptr[b * (feature_len_ - 2) + 1]  ;
+//      LOG(ERROR) << "data_ for UnrollLayer: gen " <<ptr[b * (feature_len_ - 2) + 2]  ;
+//      LOG(ERROR) << "data_ for UnrollLayer: lt " <<ptr[b * (feature_len_ - 2) + 3]  ;
+      for (int i=4; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
+          ptr[b * (feature_len_ - 3) + (i - 1)] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
+//          LOG(ERROR) << "data_ for UnrollLayer: " <<ptr[b * (feature_len_ - 2) + i] ;
+      }
+  }
+}
+
 /*******DPMGruLayer**************/
 DPMGruLayer::~DPMGruLayer() {
   delete weight_z_hx_; // params for update gate

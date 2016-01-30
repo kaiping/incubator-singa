@@ -74,6 +74,22 @@ class UnrollLayer : public singa::InputLayer {
 };
 
 /**
+ * Time Unroll layer that is modified from Unroll layer to consider time information
+ */
+class TimeUnrollLayer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers);
+  Blob<float>* laptime_info() const {
+   return &laptime_info_;
+  }
+
+ private:
+  int batchsize_, feature_len_;
+  Blob<float> laptime_info_; // a member for storing all lap time information
+};
+
+/**
  * DPMGru layer which is modified to consider time information
  */
 class DPMGruLayer : public NeuronLayer {
