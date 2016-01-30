@@ -62,7 +62,7 @@ class DataLayer : public singa::InputLayer {
 };
 
 /**
- * Unroll layer that has similar functionality with OneHotLayer in CharRNN example
+ * Unroll layer that has similar functionality with OneHotLayer in CharRNN example (Model V1)
  */
 class UnrollLayer : public singa::InputLayer {
  public:
@@ -74,7 +74,7 @@ class UnrollLayer : public singa::InputLayer {
 };
 
 /**
- * Time Unroll layer that is modified from Unroll layer to consider time information
+ * Time Unroll layer that is modified from Unroll layer to consider time information (Model V2)
  */
 class TimeUnrollLayer : public singa::InputLayer {
  public:
@@ -90,7 +90,7 @@ class TimeUnrollLayer : public singa::InputLayer {
 };
 
 /**
- * DPMGru layer which is modified to consider time information
+ * DPMGru layer which is modified to consider time information (Model V2)
  */
 class DPMGruLayer : public NeuronLayer {
  public:
