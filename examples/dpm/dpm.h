@@ -76,7 +76,7 @@ class UnrollLayer : public singa::InputLayer {
 /**
  * Time Unroll layer that is modified from Unroll layer to consider time information (Model V2)
  */
-class TimeUnrollLayer : public singa::InputLayer {
+class UnrollV2Layer : public singa::InputLayer {
  public:
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers);
