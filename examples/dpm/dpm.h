@@ -41,7 +41,7 @@ using singa::Blob;
 using singa::Metric;
 
 /**
- * Input layer that get read records from two data shards: Dynamic Data Shard and Label Data Shard
+ * Model 1 & Model 2 & Model 3: Input layer that get read records from two data shards: Dynamic Data Shard and Label Data Shard
  */
 class DataLayer : public singa::InputLayer {
  public:
@@ -62,7 +62,7 @@ class DataLayer : public singa::InputLayer {
 };
 
 /**
- * Unroll layer that has similar functionality with OneHotLayer in CharRNN example (Model V1)
+ * Model 1: Unroll layer that has similar functionality with OneHotLayer in CharRNN example (Model V1)
  */
 class UnrollLayer : public singa::InputLayer {
  public:
@@ -74,7 +74,7 @@ class UnrollLayer : public singa::InputLayer {
 };
 
 /**
- * Time Unroll layer that is modified from Unroll layer to consider time information (Model V2)
+ * Model 2: Time Unroll layer that is modified from Unroll layer to consider time information
  */
 class UnrollV2Layer : public singa::InputLayer {
  public:
@@ -90,7 +90,7 @@ class UnrollV2Layer : public singa::InputLayer {
 };
 
 /**
- * DPMGru layer which is modified to consider time information (Model V2)
+ * Model 2 & Model 3: DPMGru layer which is modified to consider time information
  */
 class DPMGruLayer : public NeuronLayer {
  public:
@@ -129,7 +129,7 @@ class DPMGruLayer : public NeuronLayer {
  private:
   int batchsize_;  // batch size
   int vdim_, hdim_;  // dimensions
-  Blob<float> *update_gate_, *reset_gate_, *new_memory_, *new_update_gate_, *time_part_;
+  Blob<float> *update_gate_, *reset_gate_, *new_memory_, *new_update_gate_, *time_part_; // Add new_update_gate_ and time_part_ for computation
   Param *weight_z_hx_, *weight_z_hh_, *bias_z_;  // update gate
   Param *weight_r_hx_, *weight_r_hh_, *bias_r_;  // reset gate
   Param *weight_c_hx_, *weight_c_hh_, *bias_c_;  // new memory
@@ -138,7 +138,7 @@ class DPMGruLayer : public NeuronLayer {
 
 
 /**
- * Label layer for fetching label information from the src input layer (TimeSpanDataLayer) for DPM models.
+ * Model 1 & Model 2 & Model 3: Label layer for fetching label information from the src input layer (TimeSpanDataLayer) for DPM models.
  */
 class DPMLabelLayer : public singa::InputLayer {
  public:
@@ -149,7 +149,7 @@ class DPMLabelLayer : public singa::InputLayer {
 };
 
 /**
- * Time layer for fetching Delta_T information from the src input layer (DataLayer) for DPM models.
+ * Model 1 & Model 2 & Model 3: Time layer for fetching Delta_T information from the src input layer (DataLayer) for DPM models.
  */
 class DPMTimeLayer : public singa::InputLayer {
  public:
@@ -160,7 +160,7 @@ class DPMTimeLayer : public singa::InputLayer {
 };
 
 /**
- * CombinationLayer as an extension based on InnerproductLayer, which can handle 2 src inputs
+ * Model 1 & Model 2: CombinationLayer as an extension based on InnerproductLayer, which can handle 2 src inputs
  */
 class CombinationLayer : public singa::NeuronLayer {
  public:
