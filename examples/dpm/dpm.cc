@@ -129,7 +129,7 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
            l = unroll_len_ - static_cast<int>(dynamic.nb_sample());
         }
         float* ptr = datavec_[l]->mutable_cpu_data();
-        ptr[b * feature_len_ + 0] = static_cast<float>(dynamic.age());  // feature_len_ is 596 (4 + 592)
+        ptr[b * feature_len_ + 0] = static_cast<float>(dynamic.age());  // feature_len_ is 596 (4 <3 demo features and lap_time> + 592)
         ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.education());
         ptr[b * feature_len_ + 2] = static_cast<float>(dynamic.gender());
         ptr[b * feature_len_ + 3] = static_cast<float>(dynamic.lap_time());
@@ -195,7 +195,7 @@ void UnrollV2Layer::Setup(const LayerProto& conf,
   InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 598 = 4 (3 demo + lap_time) + 592 + 2
-  data_.Reshape(batchsize_, feature_len_ - 3);  // reshape data for each unit, do not include lap_time info in data_
+  data_.Reshape(batchsize_, feature_len_ - 3);  // reshape data for each unit, do NOT include lap_time info in data_
   laptime_info_.Reshape(batchsize_, 1); // for 1 patient in 1 Unroll part/GRU part, only 1 dimension of feature
 }
 
@@ -227,7 +227,7 @@ void UnrollV2Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   }
 }
 
-/*******DPMGruLayer**************/
+/*******DPMGruLayer - For Model 2**************/
 DPMGruLayer::~DPMGruLayer() {
   delete weight_z_hx_; // params for update gate
   delete weight_z_hh_;
@@ -244,6 +244,11 @@ DPMGruLayer::~DPMGruLayer() {
   delete update_gate_; // gate information
   delete reset_gate_;
   delete new_memory_;
+
+  // Parameters for time-related part
+  delete weight_theta_;
+  delete bias_theta_;
+
   delete new_update_gate_; // specific for time-related information
   delete time_part_;
   // delete reset_context_;
@@ -322,7 +327,7 @@ void DPMGruLayer::ComputeFeature(int flag,
   Blob<float> *w_r_hh_t = Transpose(weight_r_hh_->data());
   Blob<float> *w_c_hx_t = Transpose(weight_c_hx_->data());
   Blob<float> *w_c_hh_t = Transpose(weight_c_hh_->data());
-
+  // new parameters
   Blob<float> *w_theta_t = Transpose(weight_theta_->data());
 
   // Prepare the data input and the context
@@ -333,7 +338,7 @@ void DPMGruLayer::ComputeFeature(int flag,
   } else {  // have data input & context
     context = &srclayers[1]->data(this);
   }
-
+  // Prepare the lap_time input
   const Blob<float> *lap = srclayers[0]->laptime_info(); // information related to lap time
   LOG(ERROR) << "Shape size for laptime_info_: " << (*lap).shape().size(); // for testing
   LOG(ERROR) << "Shape 1 for laptime_info_: " << (*lap).shape(0);
@@ -356,7 +361,7 @@ void DPMGruLayer::ComputeFeature(int flag,
   if (bias_theta_ != nullptr)
     MVAddRow(1.0f, 1.0f, bias_theta_->data(), time_part_);
   Map<op::Sigmoid<float>, float>(*time_part_, time_part_);
-  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart)
+  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart);
   Mult(*update_gate_, one_minus_timepart, new_update_gate_);
 
   // Compute the reset gate
@@ -388,6 +393,7 @@ void DPMGruLayer::ComputeFeature(int flag,
   delete w_r_hh_t;
   delete w_c_hx_t;
   delete w_c_hh_t;
+  // new params
   delete w_theta_t;
   //delete one;
   delete lap;
@@ -426,16 +432,19 @@ void DPMGruLayer::ComputeGradient(int flag,
   Blob<float> dnewmdc(batchsize_, hdim_);
   Map<singa::op::TanhGrad<float>, float>(*new_memory_, &dnewmdc);
 
-  // Add intermediate gradients for time part
+  // Add intermediate gradients for newly-considered time part
   Blob<float> dtimedt(batchsize_, hdim_);
   Map<singa::op::SigmoidGrad<float>, float>(*time_part_, &dtimedt);
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Update Gate: dLdz
   Blob<float> dLdz(batchsize_, hdim_);
+  Blob<float> one_minus_timepart2(batchsize_, hdim_);
+  one_minus_timepart2.SetValue(1.0f); // SetValue() is to fill every entry of Blob with the same value
+  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart2);
   Sub<float>(*context, *new_memory_, &dLdz);
   Mult<float>(dLdz, grad_, &dLdz);
   Mult<float>(dLdz, dugatedz, &dLdz);
-  Mult<float>(dLdz, time_part_, &dLdz); // Model 2: Add time information's influence in update gate computation
+  Mult<float>(dLdz, one_minus_timepart2, &dLdz); // Model 2: Add time information's influence in update gate computation
 
   // Model 2: Compute gradient of Loss to pre-activated sum of Time part (gate): dLdt
   Blob<float> dLdt(batchsize_, hdim_);
@@ -451,13 +460,13 @@ void DPMGruLayer::ComputeGradient(int flag,
   Blob<float> dLdc(batchsize_, hdim_);
   Blob<float> z1(batchsize_, hdim_);
   z1.SetValue(1.0f);
-  AXPY<float>(-1.0f, *new_update_gate_, &z1); // Model 2: Add time information's influence in new mem computation
+  AXPY<float>(-1.0f, *new_update_gate_, &z1); // Add time information's influence in new mem computation (use new_update_gate_)
   Mult(grad_, z1, &dLdc);
   Mult(dLdc, dnewmdc, &dLdc);
 
   // kaiping: Compute the product of dLdc and reset_gate
   Blob<float> reset_dLdc(batchsize_, hdim_);
-  Mult(dLdc, *reset_gate_, &reset_dLdc); // Model 2: As dLdc already changes, no explicit change here
+  Mult(dLdc, *reset_gate_, &reset_dLdc); // As dLdc already changes, no explicit change here
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Reset Gate
   Blob<float> dLdr(batchsize_, hdim_);
@@ -466,7 +475,7 @@ void DPMGruLayer::ComputeGradient(int flag,
   Mult(dLdc, cprev, &dLdr);
   Mult(dLdr, drgatedr, &dLdr); // Model 2: As dLdc already changes, no explicit change here
 
-  // Compute gradients for parameters of update gate (Model 2: no explicit change here)
+  // Compute gradients for parameters of update gate (No explicit change here, already change dLdx part)
   Blob<float> *dLdz_t = Transpose(dLdz);
   GEMM(1.0f, beta, *dLdz_t, src, weight_z_hx_->mutable_grad());
   GEMM(1.0f, beta, *dLdz_t, *context, weight_z_hh_->mutable_grad());
@@ -474,7 +483,7 @@ void DPMGruLayer::ComputeGradient(int flag,
     MVSumRow<float>(1.0f, beta, dLdz, bias_z_->mutable_grad());
   delete dLdz_t;
 
-  // Compute gradients for parameters of reset gate (Model 2: no explicit change here)
+  // Compute gradients for parameters of reset gate (No explicit change here, already change dLdx part)
   Blob<float> *dLdr_t = Transpose(dLdr);
   GEMM(1.0f, beta, *dLdr_t, src, weight_r_hx_->mutable_grad());
   GEMM(1.0f, beta, *dLdr_t, *context, weight_r_hh_->mutable_grad());
@@ -482,7 +491,7 @@ void DPMGruLayer::ComputeGradient(int flag,
     MVSumRow(1.0f, beta, dLdr, bias_r_->mutable_grad());
   delete dLdr_t;
 
-  // Compute gradients for parameters of new memory (Model 2: no explicit change here)
+  // Compute gradients for parameters of new memory (No explicit change here, already change dLdx part)
   Blob<float> *dLdc_t = Transpose(dLdc);
   GEMM(1.0f, beta, *dLdc_t, src, weight_c_hx_->mutable_grad());
   if (bias_c_ != nullptr)
@@ -493,9 +502,9 @@ void DPMGruLayer::ComputeGradient(int flag,
   GEMM(1.0f, beta, *reset_dLdc_t, *context, weight_c_hh_->mutable_grad());
   delete reset_dLdc_t;
 
-  // Model 2: Compute gradients for newly-added time-related parameters: weight_theta_, bias_theta_
+  // Compute gradients for newly-added time-related parameters: weight_theta_, bias_theta_
   Blob<float> *dLdt_t = Transpose(dLdt);
-  GEMM(1.0f, beta, *dLdt_t, lap, weight_theta_->mutable_grad());
+  GEMM(1.0f, beta, *dLdt_t, *lap, weight_theta_->mutable_grad());
   if (bias_theta_ != nullptr)
     MVSumRow<float>(1.0f, beta, dLdt, bias_theta_->mutable_grad());
   delete dLdt_t;
@@ -507,7 +516,7 @@ void DPMGruLayer::ComputeGradient(int flag,
     GEMM(1.0f, 1.0f, dLdr, weight_r_hx_->data(), ilayer->mutable_grad(this));
   }
 
-  // Compute gradients for context input layer (Model 2: no explicit change here)
+  // Compute gradients for context input layer (No explicit change here, already change dLdx part)
   if (clayer != nullptr && clayer->mutable_grad(this) != nullptr) {
     // Compute gradients for context layer
     GEMM(1.0f, 0.0f, reset_dLdc, weight_c_hh_->data(),
