@@ -90,6 +90,22 @@ class UnrollV2Layer : public singa::InputLayer {
 };
 
 /**
+ * Model 3: Time Unroll layer that is modified from Unroll layer to consider time information, but leave out demo features
+ */
+class UnrollV3Layer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers);
+  Blob<float>* laptime_info() const {
+   return &laptime_info_;
+  }
+
+ private:
+  int batchsize_, feature_len_;
+  Blob<float> laptime_info_; // a member for storing all lap time information
+};
+
+/**
  * Model 2 & Model 3: DPMGru layer which is modified to consider time information
  */
 class DPMGruLayer : public NeuronLayer {
@@ -136,9 +152,20 @@ class DPMGruLayer : public NeuronLayer {
   Param *weight_theta_, *bias_theta_;  // handling time span between each two input records
 };
 
+/**
+ * Model 3: Demo layer for fetching demographical information from the src input layer (DataLayer) for DPM models.
+ */
+class DPMDemoLayer : public singa::InputLayer {
+ public:
+  void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
+ private:
+  int batchsize_, feature_len_, unroll_len_;
+};
+
 
 /**
- * Model 1 & Model 2 & Model 3: Label layer for fetching label information from the src input layer (TimeSpanDataLayer) for DPM models.
+ * Model 1 & Model 2 & Model 3: Label layer for fetching label information from the src input layer (DataLayer) for DPM models.
  */
 class DPMLabelLayer : public singa::InputLayer {
  public:
@@ -181,6 +208,30 @@ class CombinationLayer : public singa::NeuronLayer {
   int vdim_, hdim_;
   bool transpose_;
   Param *weight1_, *weight2_, *bias_; // weight1_ is whc, weight2_ is alpha, and bias is b
+};
+
+/**
+ * Model 3: CombinationLayer as an extension based on InnerproductLayer, which can handle 3 src inputs
+ */
+class CombinationV3Layer : public singa::NeuronLayer {
+ public:
+  ~CombinationV3Layer();
+  void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
+  void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
+  void ComputeGradient(int flag, const vector<Layer*>& srclayers) override;
+  singa::ConnectionType src_neuron_connection(int k) const override {
+    return singa::kOneToAll;
+  }
+  const std::vector<Param*> GetParams() const override {
+    std::vector<Param*> params{weight1_, weight2_, weight3_, bias_};
+    return params;
+  }
+
+ private:
+  int batchsize_;
+  int vdim_, hdim_, vdim_demo_;
+  bool transpose_;
+  Param *weight1_, *weight2_, *weight3_, *bias_; // weight1_ is whc, weight2_ is alpha (time), weight3_ is wdc (demo), and bias is b
 };
 
 }  // namespace dpm

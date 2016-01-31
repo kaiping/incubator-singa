@@ -64,12 +64,23 @@ message CombinationProto {
   optional bool transpose = 31 [default = false];
 }
 
+// Message that stores parameters used by CombinationV3Layer
+message CombinationV3Proto {
+  // number of outputs for the layer
+  required int32 num_output = 1;
+  // use bias vector or not
+  optional bool bias_term = 30 [default = true];
+  // transpose or not
+  optional bool transpose = 31 [default = false];
+}
+
 extend singa.LayerProto {
   //optional DynamicDataProto dynamic_data_conf = 1001;
   //optional TimeSpanDataProto time_span_data_conf = 1002;
   optional DataProto data_conf = 1001;
   optional DPMGruProto dpmgru_conf = 1002;
   optional CombinationProto combination_conf = 1003;
+  optional CombinationV3Proto combinationv3_conf = 1004;
 }
 
 message DynamicRecord {
