@@ -29,6 +29,7 @@
 #include "singa/utils/math_blob.h"
 #include "singa/utils/singa_op.h"
 #include "./dpm.pb.h"
+#include "../../include/singa/utils/singa_op.h"
 
 namespace dpm {
 using std::vector;
@@ -188,8 +189,8 @@ void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   }
 }
 
-/*******TimeUnrollLayer**************/
-void TimeUnrollLayer::Setup(const LayerProto& conf,
+/*******UnrolV2LLayer for 2nd version of model**************/
+void UnrollV2Layer::Setup(const LayerProto& conf,
   const vector<Layer*>& srclayers) {
   InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
@@ -198,7 +199,7 @@ void TimeUnrollLayer::Setup(const LayerProto& conf,
   laptime_info_.Reshape(batchsize_, 1); // for 1 patient in 1 Unroll part/GRU part, only 1 dimension of feature
 }
 
-void TimeUnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+void UnrollV2Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   // fill information in data_
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
@@ -348,18 +349,15 @@ void DPMGruLayer::ComputeFeature(int flag,
   // LOG(ERROR) << "Update Gate: " << update_gate_->cpu_data()[0];
 
   // Time part computation & new update gate computation
-  const Blob<float> *one; // obtain a blob with shape (batchsize_, hdim_), all values are 1
-  one = new Blob<float>(batchsize_, hdim_);
-  float* one_ptr = one->mutable_cpu_data();
-  for (int i = 0; i < one->count(); i++)
-      one_ptr[i] = 1.0f;
+  Blob<float> one_minus_timepart(batchsize_, hdim_);
+  one_minus_timepart.SetValue(1.0f); // SetValue() is to fill every entry of Blob with the same value
 
   GEMM(1.0f, 0.0f, *lap, *w_theta_t, time_part_);
   if (bias_theta_ != nullptr)
     MVAddRow(1.0f, 1.0f, bias_theta_->data(), time_part_);
   Map<op::Sigmoid<float>, float>(*time_part_, time_part_);
-  Sub(*one, *time_part_, time_part_);
-  Mult(*update_gate_, *time_part_, new_update_gate_);
+  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart)
+  Mult(*update_gate_, one_minus_timepart, new_update_gate_);
 
   // Compute the reset gate
   GEMM(1.0f, 0.0f, src, *w_r_hx_t, reset_gate_);
@@ -391,7 +389,7 @@ void DPMGruLayer::ComputeFeature(int flag,
   delete w_c_hx_t;
   delete w_c_hh_t;
   delete w_theta_t;
-  delete one;
+  //delete one;
   delete lap;
 }
 
@@ -408,46 +406,67 @@ void DPMGruLayer::ComputeGradient(int flag,
   const Blob<float>& src = ilayer->data(this);
   const Blob<float> *context;
   if (srclayers.size() == 1) {  // only have data input
-    context = new Blob<float>(batchsize_, hdim_);
+    context = new Blob<float>(batchsize_, hdim_); // ? (kaiping): where to fill in with all 0s?
   } else {  // have data input & context
     clayer = srclayers[1];
     context = &(clayer->data(this));
   }
 
+  // Retrieve time-related information
+  const Blob<float> *lap = srclayers[0]->laptime_info(); // information related to lap time
+  LOG(ERROR) << "Shape size for laptime_info_: " << (*lap).shape().size(); // for testing
+  LOG(ERROR) << "Shape 1 for laptime_info_: " << (*lap).shape(0);
+  LOG(ERROR) << "Shape 2 for laptime_info_: " << (*lap).shape(1);
+
   // Compute intermediate gradients which are used for other computations (gradient of gates to pre-activation sum)
   Blob<float> dugatedz(batchsize_, hdim_);
-  Map<singa::op::SigmoidGrad<float>, float>(*update_gate_, &dugatedz);
+  Map<singa::op::SigmoidGrad<float>, float>(*update_gate_, &dugatedz); // dugateddz should not be changed, used later
   Blob<float> drgatedr(batchsize_, hdim_);
   Map<singa::op::SigmoidGrad<float>, float>(*reset_gate_, &drgatedr);
   Blob<float> dnewmdc(batchsize_, hdim_);
   Map<singa::op::TanhGrad<float>, float>(*new_memory_, &dnewmdc);
 
-  // kaiping: Compute gradient of Loss to pre-activated sum of Update Gate
+  // Add intermediate gradients for time part
+  Blob<float> dtimedt(batchsize_, hdim_);
+  Map<singa::op::SigmoidGrad<float>, float>(*time_part_, &dtimedt);
+
+  // kaiping: Compute gradient of Loss to pre-activated sum of Update Gate: dLdz
   Blob<float> dLdz(batchsize_, hdim_);
   Sub<float>(*context, *new_memory_, &dLdz);
   Mult<float>(dLdz, grad_, &dLdz);
   Mult<float>(dLdz, dugatedz, &dLdz);
+  Mult<float>(dLdz, time_part_, &dLdz); // Model 2: Add time information's influence in update gate computation
+
+  // Model 2: Compute gradient of Loss to pre-activated sum of Time part (gate): dLdt
+  Blob<float> dLdt(batchsize_, hdim_);
+  Blob<float> zmin1(batchsize_, hdim_);
+  zmin1.SetValue(-1.0f);
+  Sub<float>(*context, *new_memory_, &dLdt);
+  Mult<float>(dLdt, grad_, &dLdt);
+  Mult<float>(dLdt, *update_gate_, &dLdt);
+  Mult<float>(dLdt, zmin1, &dLdt);
+  Mult<float>(dLdt, dtimedt, &dLdt);
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Context
   Blob<float> dLdc(batchsize_, hdim_);
   Blob<float> z1(batchsize_, hdim_);
   z1.SetValue(1.0f);
-  AXPY<float>(-1.0f, *update_gate_, &z1);
+  AXPY<float>(-1.0f, *new_update_gate_, &z1); // Model 2: Add time information's influence in new mem computation
   Mult(grad_, z1, &dLdc);
   Mult(dLdc, dnewmdc, &dLdc);
 
   // kaiping: Compute the product of dLdc and reset_gate
   Blob<float> reset_dLdc(batchsize_, hdim_);
-  Mult(dLdc, *reset_gate_, &reset_dLdc);
+  Mult(dLdc, *reset_gate_, &reset_dLdc); // Model 2: As dLdc already changes, no explicit change here
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Reset Gate
   Blob<float> dLdr(batchsize_, hdim_);
   Blob<float> cprev(batchsize_, hdim_);
   GEMM(1.0f, 0.0f, *context, weight_c_hh_->data().T(), &cprev);
   Mult(dLdc, cprev, &dLdr);
-  Mult(dLdr, drgatedr, &dLdr);
+  Mult(dLdr, drgatedr, &dLdr); // Model 2: As dLdc already changes, no explicit change here
 
-  // Compute gradients for parameters of update gate
+  // Compute gradients for parameters of update gate (Model 2: no explicit change here)
   Blob<float> *dLdz_t = Transpose(dLdz);
   GEMM(1.0f, beta, *dLdz_t, src, weight_z_hx_->mutable_grad());
   GEMM(1.0f, beta, *dLdz_t, *context, weight_z_hh_->mutable_grad());
@@ -455,7 +474,7 @@ void DPMGruLayer::ComputeGradient(int flag,
     MVSumRow<float>(1.0f, beta, dLdz, bias_z_->mutable_grad());
   delete dLdz_t;
 
-  // Compute gradients for parameters of reset gate
+  // Compute gradients for parameters of reset gate (Model 2: no explicit change here)
   Blob<float> *dLdr_t = Transpose(dLdr);
   GEMM(1.0f, beta, *dLdr_t, src, weight_r_hx_->mutable_grad());
   GEMM(1.0f, beta, *dLdr_t, *context, weight_r_hh_->mutable_grad());
@@ -463,7 +482,7 @@ void DPMGruLayer::ComputeGradient(int flag,
     MVSumRow(1.0f, beta, dLdr, bias_r_->mutable_grad());
   delete dLdr_t;
 
-  // Compute gradients for parameters of new memory
+  // Compute gradients for parameters of new memory (Model 2: no explicit change here)
   Blob<float> *dLdc_t = Transpose(dLdc);
   GEMM(1.0f, beta, *dLdc_t, src, weight_c_hx_->mutable_grad());
   if (bias_c_ != nullptr)
@@ -474,13 +493,21 @@ void DPMGruLayer::ComputeGradient(int flag,
   GEMM(1.0f, beta, *reset_dLdc_t, *context, weight_c_hh_->mutable_grad());
   delete reset_dLdc_t;
 
-  // Compute gradients for data input layer
+  // Model 2: Compute gradients for newly-added time-related parameters: weight_theta_, bias_theta_
+  Blob<float> *dLdt_t = Transpose(dLdt);
+  GEMM(1.0f, beta, *dLdt_t, lap, weight_theta_->mutable_grad());
+  if (bias_theta_ != nullptr)
+    MVSumRow<float>(1.0f, beta, dLdt, bias_theta_->mutable_grad());
+  delete dLdt_t;
+
+  // Compute gradients for data input layer (Model 2: no explicit change here)
   if (srclayers[0]->mutable_grad(this) != nullptr) {
     GEMM(1.0f, 0.0f, dLdc, weight_c_hx_->data(), ilayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdz, weight_z_hx_->data(), ilayer->mutable_grad(this));
     GEMM(1.0f, 1.0f, dLdr, weight_r_hx_->data(), ilayer->mutable_grad(this));
   }
 
+  // Compute gradients for context input layer (Model 2: no explicit change here)
   if (clayer != nullptr && clayer->mutable_grad(this) != nullptr) {
     // Compute gradients for context layer
     GEMM(1.0f, 0.0f, reset_dLdc, weight_c_hh_->data(),
