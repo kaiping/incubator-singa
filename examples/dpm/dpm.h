@@ -80,8 +80,8 @@ class UnrollV2Layer : public singa::InputLayer {
  public:
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers);
-  Blob<float>* laptime_info() const {
-   return &laptime_info_;
+  Blob<float> laptime_info() const {
+   return laptime_info_;
   }
 
  private:
@@ -96,8 +96,8 @@ class UnrollV3Layer : public singa::InputLayer {
  public:
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers);
-  Blob<float>* laptime_info() const {
-   return &laptime_info_;
+  Blob<float> laptime_info() const {
+   return laptime_info_;
   }
 
  private:
@@ -108,14 +108,14 @@ class UnrollV3Layer : public singa::InputLayer {
 /**
  * Model 2 & Model 3: DPMGru layer which is modified to consider time information
  */
-class DPMGruLayer : public NeuronLayer {
+class DPMGruLayer : public singa::NeuronLayer {
  public:
   ~DPMGruLayer();
   void Setup(const LayerProto& proto, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
   void ComputeGradient(int flag, const vector<Layer*>& srclayers) override;
-  ConnectionType dst_layer_connection() const override {
-    return kOneToMany;
+  singa::ConnectionType dst_layer_connection() const override {
+    return singa::kOneToMany;
   }
   Blob<float>* mutable_grad(const Layer* from) override {
     if (typeid(*from) == typeid(DPMGruLayer))

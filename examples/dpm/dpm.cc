@@ -36,6 +36,7 @@ using std::vector;
 using std::string;
 
 using namespace mshadow;
+//using namespace singa;
 using mshadow::cpu;
 using mshadow::Shape;
 using mshadow::Shape1;
@@ -376,49 +377,49 @@ void DPMGruLayer::ComputeFeature(int flag,
     context = &srclayers[1]->data(this);
   }
   // Prepare the lap_time input
-  const Blob<float> *lap = srclayers[0]->laptime_info(); // information related to lap time
-  LOG(ERROR) << "Shape size for laptime_info_: " << (*lap).shape().size(); // for testing
-  LOG(ERROR) << "Shape 1 for laptime_info_: " << (*lap).shape(0);
-  LOG(ERROR) << "Shape 2 for laptime_info_: " << (*lap).shape(1);
+  const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
+  LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
+  LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
+  LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
 
   // Compute the update gate, new update gate and time part information
   // Original update gate
-  GEMM(1.0f, 0.0f, src, *w_z_hx_t, update_gate_);
+  singa::GEMM(1.0f, 0.0f, src, *w_z_hx_t, update_gate_);
   if (bias_z_ != nullptr)
-    MVAddRow(1.0f, 1.0f, bias_z_->data(), update_gate_);
+      singa::MVAddRow(1.0f, 1.0f, bias_z_->data(), update_gate_);
   GEMM(1.0f, 1.0f, *context, *w_z_hh_t, update_gate_);
-  Map<op::Sigmoid<float>, float>(*update_gate_, update_gate_);
+  singa::Map<singa::op::Sigmoid<float>, float>(*update_gate_, update_gate_);
   // LOG(ERROR) << "Update Gate: " << update_gate_->cpu_data()[0];
 
   // Time part computation & new update gate computation
   Blob<float> one_minus_timepart(batchsize_, hdim_);
   one_minus_timepart.SetValue(1.0f); // SetValue() is to fill every entry of Blob with the same value
 
-  GEMM(1.0f, 0.0f, *lap, *w_theta_t, time_part_);
+  singa::GEMM(1.0f, 0.0f, lap, *w_theta_t, time_part_);
   if (bias_theta_ != nullptr)
-    MVAddRow(1.0f, 1.0f, bias_theta_->data(), time_part_);
-  Map<op::Sigmoid<float>, float>(*time_part_, time_part_);
-  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart);
-  Mult(*update_gate_, one_minus_timepart, new_update_gate_);
+      singa::MVAddRow(1.0f, 1.0f, bias_theta_->data(), time_part_);
+  singa::Map<singa::op::Sigmoid<float>, float>(*time_part_, time_part_);
+  singa::AXPY<float>(-1.0f, *time_part_, &one_minus_timepart);
+  singa::Mult(*update_gate_, one_minus_timepart, new_update_gate_);
 
   // Compute the reset gate
-  GEMM(1.0f, 0.0f, src, *w_r_hx_t, reset_gate_);
+  singa::GEMM(1.0f, 0.0f, src, *w_r_hx_t, reset_gate_);
   if (bias_r_ != nullptr)
-    MVAddRow(1.0f, 1.0f, bias_r_->data(), reset_gate_);
-  GEMM(1.0f, 1.0f, *context, *w_r_hh_t, reset_gate_);
-  Map<op::Sigmoid<float>, float>(*reset_gate_, reset_gate_);
+      singa::MVAddRow(1.0f, 1.0f, bias_r_->data(), reset_gate_);
+  singa::GEMM(1.0f, 1.0f, *context, *w_r_hh_t, reset_gate_);
+  singa::Map<singa::op::Sigmoid<float>, float>(*reset_gate_, reset_gate_);
   // LOG(ERROR) << "Reset Gate: " << reset_gate_->cpu_data()[0];
   // Compute the new memory
-  GEMM(1.0f, 0.0f, *context, *w_c_hh_t, new_memory_);
-  Mult<float>(*reset_gate_, *new_memory_, new_memory_);
-  GEMM(1.0f, 1.0f, src, *w_c_hx_t, new_memory_);
+  singa::GEMM(1.0f, 0.0f, *context, *w_c_hh_t, new_memory_);
+  singa::Mult<float>(*reset_gate_, *new_memory_, new_memory_);
+  singa::GEMM(1.0f, 1.0f, src, *w_c_hx_t, new_memory_);
   if (bias_c_ != nullptr)
-    MVAddRow(1.0f, 1.0f, bias_c_->data(), new_memory_);
-  Map<op::Tanh<float>, float>(*new_memory_, new_memory_);
+      singa::MVAddRow(1.0f, 1.0f, bias_c_->data(), new_memory_);
+  singa::Map<singa::op::Tanh<float>, float>(*new_memory_, new_memory_);
 
-  Sub(*context, *new_memory_, &data_);
-  Mult(data_, *new_update_gate_, &data_);
-  Add(data_, *new_memory_, &data_);
+  singa::Sub(*context, *new_memory_, &data_);
+  singa::Mult(data_, *new_update_gate_, &data_);
+  singa::Add(data_, *new_memory_, &data_);
 
   // delete the pointers
   if (srclayers.size() == 1)
@@ -433,14 +434,14 @@ void DPMGruLayer::ComputeFeature(int flag,
   // new params
   delete w_theta_t;
   //delete one;
-  delete lap;
+  //delete lap;
 }
 
 void DPMGruLayer::ComputeGradient(int flag,
     const vector<Layer*>& srclayers) {
   CHECK_LE(srclayers.size(), 2);
   // agg grad from two dst layers, gradvec_[0] is grad_ (computed as src_grad in the direct upper layer)
-  AXPY(1.0f, *gradvec_[1], &grad_);
+  singa::AXPY(1.0f, *gradvec_[1], &grad_);
   float beta = 1.0f;  // agg param gradients
 
   Layer* ilayer = srclayers[0];  // input layer
@@ -456,111 +457,111 @@ void DPMGruLayer::ComputeGradient(int flag,
   }
 
   // Retrieve time-related information
-  const Blob<float> *lap = srclayers[0]->laptime_info(); // information related to lap time
-  LOG(ERROR) << "Shape size for laptime_info_: " << (*lap).shape().size(); // for testing
-  LOG(ERROR) << "Shape 1 for laptime_info_: " << (*lap).shape(0);
-  LOG(ERROR) << "Shape 2 for laptime_info_: " << (*lap).shape(1);
+  const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
+  LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
+  LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
+  LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
 
   // Compute intermediate gradients which are used for other computations (gradient of gates to pre-activation sum)
   Blob<float> dugatedz(batchsize_, hdim_);
-  Map<singa::op::SigmoidGrad<float>, float>(*update_gate_, &dugatedz); // dugateddz should not be changed, used later
+  singa::Map<singa::op::SigmoidGrad<float>, float>(*update_gate_, &dugatedz); // dugateddz should not be changed, used later
   Blob<float> drgatedr(batchsize_, hdim_);
-  Map<singa::op::SigmoidGrad<float>, float>(*reset_gate_, &drgatedr);
+  singa::Map<singa::op::SigmoidGrad<float>, float>(*reset_gate_, &drgatedr);
   Blob<float> dnewmdc(batchsize_, hdim_);
-  Map<singa::op::TanhGrad<float>, float>(*new_memory_, &dnewmdc);
+  singa::Map<singa::op::TanhGrad<float>, float>(*new_memory_, &dnewmdc);
 
   // Add intermediate gradients for newly-considered time part
   Blob<float> dtimedt(batchsize_, hdim_);
-  Map<singa::op::SigmoidGrad<float>, float>(*time_part_, &dtimedt);
+  singa::Map<singa::op::SigmoidGrad<float>, float>(*time_part_, &dtimedt);
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Update Gate: dLdz
   Blob<float> dLdz(batchsize_, hdim_);
   Blob<float> one_minus_timepart2(batchsize_, hdim_);
   one_minus_timepart2.SetValue(1.0f); // SetValue() is to fill every entry of Blob with the same value
-  AXPY<float>(-1.0f, *time_part_, &one_minus_timepart2);
-  Sub<float>(*context, *new_memory_, &dLdz);
-  Mult<float>(dLdz, grad_, &dLdz);
-  Mult<float>(dLdz, dugatedz, &dLdz);
-  Mult<float>(dLdz, one_minus_timepart2, &dLdz); // Model 2: Add time information's influence in update gate computation
+  singa::AXPY<float>(-1.0f, *time_part_, &one_minus_timepart2);
+  singa::Sub<float>(*context, *new_memory_, &dLdz);
+  singa::Mult<float>(dLdz, grad_, &dLdz);
+  singa::Mult<float>(dLdz, dugatedz, &dLdz);
+  singa::Mult<float>(dLdz, one_minus_timepart2, &dLdz); // Model 2: Add time information's influence in update gate computation
 
   // Model 2: Compute gradient of Loss to pre-activated sum of Time part (gate): dLdt
   Blob<float> dLdt(batchsize_, hdim_);
   Blob<float> zmin1(batchsize_, hdim_);
   zmin1.SetValue(-1.0f);
-  Sub<float>(*context, *new_memory_, &dLdt);
-  Mult<float>(dLdt, grad_, &dLdt);
-  Mult<float>(dLdt, *update_gate_, &dLdt);
-  Mult<float>(dLdt, zmin1, &dLdt);
-  Mult<float>(dLdt, dtimedt, &dLdt);
+  singa::Sub<float>(*context, *new_memory_, &dLdt);
+  singa::Mult<float>(dLdt, grad_, &dLdt);
+  singa::Mult<float>(dLdt, *update_gate_, &dLdt);
+  singa::Mult<float>(dLdt, zmin1, &dLdt);
+  singa::Mult<float>(dLdt, dtimedt, &dLdt);
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Context
   Blob<float> dLdc(batchsize_, hdim_);
   Blob<float> z1(batchsize_, hdim_);
   z1.SetValue(1.0f);
-  AXPY<float>(-1.0f, *new_update_gate_, &z1); // Add time information's influence in new mem computation (use new_update_gate_)
-  Mult(grad_, z1, &dLdc);
-  Mult(dLdc, dnewmdc, &dLdc);
+  singa::AXPY<float>(-1.0f, *new_update_gate_, &z1); // Add time information's influence in new mem computation (use new_update_gate_)
+  singa::Mult(grad_, z1, &dLdc);
+  singa::Mult(dLdc, dnewmdc, &dLdc);
 
   // kaiping: Compute the product of dLdc and reset_gate
   Blob<float> reset_dLdc(batchsize_, hdim_);
-  Mult(dLdc, *reset_gate_, &reset_dLdc); // As dLdc already changes, no explicit change here
+  singa::Mult(dLdc, *reset_gate_, &reset_dLdc); // As dLdc already changes, no explicit change here
 
   // kaiping: Compute gradient of Loss to pre-activated sum of Reset Gate
   Blob<float> dLdr(batchsize_, hdim_);
   Blob<float> cprev(batchsize_, hdim_);
-  GEMM(1.0f, 0.0f, *context, weight_c_hh_->data().T(), &cprev);
-  Mult(dLdc, cprev, &dLdr);
-  Mult(dLdr, drgatedr, &dLdr); // Model 2: As dLdc already changes, no explicit change here
+  singa::GEMM(1.0f, 0.0f, *context, weight_c_hh_->data().T(), &cprev);
+  singa::Mult(dLdc, cprev, &dLdr);
+  singa::Mult(dLdr, drgatedr, &dLdr); // Model 2: As dLdc already changes, no explicit change here
 
   // Compute gradients for parameters of update gate (No explicit change here, already change dLdx part)
   Blob<float> *dLdz_t = Transpose(dLdz);
-  GEMM(1.0f, beta, *dLdz_t, src, weight_z_hx_->mutable_grad());
-  GEMM(1.0f, beta, *dLdz_t, *context, weight_z_hh_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdz_t, src, weight_z_hx_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdz_t, *context, weight_z_hh_->mutable_grad());
   if (bias_z_ != nullptr)
-    MVSumRow<float>(1.0f, beta, dLdz, bias_z_->mutable_grad());
+      singa::MVSumRow<float>(1.0f, beta, dLdz, bias_z_->mutable_grad());
   delete dLdz_t;
 
   // Compute gradients for parameters of reset gate (No explicit change here, already change dLdx part)
   Blob<float> *dLdr_t = Transpose(dLdr);
-  GEMM(1.0f, beta, *dLdr_t, src, weight_r_hx_->mutable_grad());
-  GEMM(1.0f, beta, *dLdr_t, *context, weight_r_hh_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdr_t, src, weight_r_hx_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdr_t, *context, weight_r_hh_->mutable_grad());
   if (bias_r_ != nullptr)
-    MVSumRow(1.0f, beta, dLdr, bias_r_->mutable_grad());
+      singa::MVSumRow(1.0f, beta, dLdr, bias_r_->mutable_grad());
   delete dLdr_t;
 
   // Compute gradients for parameters of new memory (No explicit change here, already change dLdx part)
   Blob<float> *dLdc_t = Transpose(dLdc);
-  GEMM(1.0f, beta, *dLdc_t, src, weight_c_hx_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdc_t, src, weight_c_hx_->mutable_grad());
   if (bias_c_ != nullptr)
-    MVSumRow(1.0f, beta, dLdc, bias_c_->mutable_grad());
+      singa::MVSumRow(1.0f, beta, dLdc, bias_c_->mutable_grad());
   delete dLdc_t;
 
   Blob<float> *reset_dLdc_t = Transpose(reset_dLdc);
-  GEMM(1.0f, beta, *reset_dLdc_t, *context, weight_c_hh_->mutable_grad());
+  singa::GEMM(1.0f, beta, *reset_dLdc_t, *context, weight_c_hh_->mutable_grad());
   delete reset_dLdc_t;
 
   // Compute gradients for newly-added time-related parameters: weight_theta_, bias_theta_
   Blob<float> *dLdt_t = Transpose(dLdt);
-  GEMM(1.0f, beta, *dLdt_t, *lap, weight_theta_->mutable_grad());
+  singa::GEMM(1.0f, beta, *dLdt_t, lap, weight_theta_->mutable_grad());
   if (bias_theta_ != nullptr)
-    MVSumRow<float>(1.0f, beta, dLdt, bias_theta_->mutable_grad());
+      singa::MVSumRow<float>(1.0f, beta, dLdt, bias_theta_->mutable_grad());
   delete dLdt_t;
 
   // Compute gradients for data input layer (Model 2: no explicit change here)
   if (srclayers[0]->mutable_grad(this) != nullptr) {
-    GEMM(1.0f, 0.0f, dLdc, weight_c_hx_->data(), ilayer->mutable_grad(this));
-    GEMM(1.0f, 1.0f, dLdz, weight_z_hx_->data(), ilayer->mutable_grad(this));
-    GEMM(1.0f, 1.0f, dLdr, weight_r_hx_->data(), ilayer->mutable_grad(this));
+      singa::GEMM(1.0f, 0.0f, dLdc, weight_c_hx_->data(), ilayer->mutable_grad(this));
+      singa::GEMM(1.0f, 1.0f, dLdz, weight_z_hx_->data(), ilayer->mutable_grad(this));
+      singa::GEMM(1.0f, 1.0f, dLdr, weight_r_hx_->data(), ilayer->mutable_grad(this));
   }
 
   // Compute gradients for context input layer (No explicit change here, already change dLdx part)
   if (clayer != nullptr && clayer->mutable_grad(this) != nullptr) {
     // Compute gradients for context layer
-    GEMM(1.0f, 0.0f, reset_dLdc, weight_c_hh_->data(),
+      singa::GEMM(1.0f, 0.0f, reset_dLdc, weight_c_hh_->data(),
         clayer->mutable_grad(this));
-    GEMM(1.0f, 1.0f, dLdr, weight_r_hh_->data(), clayer->mutable_grad(this));
-    GEMM(1.0f, 1.0f, dLdz, weight_z_hh_->data(), clayer->mutable_grad(this));
-    Add(clayer->grad(this), *update_gate_, clayer->mutable_grad(this));
+      singa::GEMM(1.0f, 1.0f, dLdr, weight_r_hh_->data(), clayer->mutable_grad(this));
+      singa::GEMM(1.0f, 1.0f, dLdz, weight_z_hh_->data(), clayer->mutable_grad(this));
+      singa::Add(clayer->grad(this), *update_gate_, clayer->mutable_grad(this));
     // LOG(ERROR) << "grad to prev gru " << Asum(clayer->grad(this));
   }
 
