@@ -70,6 +70,7 @@ void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
 }
 
 void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  LOG(ERROR) << "This is DataLayer's ComputeFeature";
   string key, value;
   string key2, value2;
   DynamicRecord dynamic;
@@ -239,6 +240,7 @@ void UnrollV3Layer::Setup(const LayerProto& conf,
 }
 
 void UnrollV3Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  LOG(ERROR) << "This is UnrollV3Layer's ComputeFeature";
   // fill information in data_
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
@@ -356,6 +358,7 @@ void DPMGruLayer::Setup(const LayerProto& conf,
 
 void DPMGruLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
+  LOG(ERROR) << "This is DPMGruLayer's ComputeFeature";
   CHECK_LE(srclayers.size(), 2);
 
   // Do transpose
@@ -378,9 +381,9 @@ void DPMGruLayer::ComputeFeature(int flag,
   }
   // Prepare the lap_time input
   const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
-  LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
-  LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
-  LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
+  //LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
+  //LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
+  //LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
 
   // Compute the update gate, new update gate and time part information
   // Original update gate
@@ -458,9 +461,9 @@ void DPMGruLayer::ComputeGradient(int flag,
 
   // Retrieve time-related information
   const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
-  LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
-  LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
-  LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
+  //LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
+  //LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
+  //LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
 
   // Compute intermediate gradients which are used for other computations (gradient of gates to pre-activation sum)
   Blob<float> dugatedz(batchsize_, hdim_);
@@ -773,6 +776,7 @@ void CombinationV3Layer::Setup(const LayerProto &conf,
 }
 
 void CombinationV3Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  LOG(ERROR) << "Combination layer";
   Blob<float>* tmp_time = new Blob<float>(batchsize_, hdim_); // Use "tmp_time" to store the computation result from TimeSpanUnit
   Blob<float>* tmp_demo = new Blob<float>(batchsize_, hdim_); // Use "tmp_demo" to store the computation result from DemoUnit
   if(transpose_) {
