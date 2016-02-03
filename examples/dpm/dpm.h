@@ -117,6 +117,11 @@ class DPMGruLayer : public singa::NeuronLayer {
   singa::ConnectionType dst_layer_connection() const override {
     return singa::kOneToMany;
   }
+
+//  bool IsDPMGruLayer() const override {
+//    return true;
+//  }
+
   Blob<float>* mutable_grad(const Layer* from) override {
     if (typeid(*from) == typeid(DPMGruLayer))
       return gradvec_[1];
