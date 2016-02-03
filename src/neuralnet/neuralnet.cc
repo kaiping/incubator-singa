@@ -216,7 +216,7 @@ const NetProto NeuralNet::Unrolling(const NetProto& net_conf) {
     }
     //if (org_layer.type() == kDPMGru) {  // connect DPMGru layers
     //if (typeid(org_layer) == typeid("kDPMGru")) {
-    if (org_layer.IsDPMGruLayer() == true) {
+    if (org_layer.is_dpmgru() == true) {
       for (unsigned int j = 1; j < layer_groups[index].size(); j ++) {
         LayerProto* unroll_layer = conf.mutable_layer(layer_groups[index][j]);
         string srcname = conf.layer(layer_groups[index][j-1]).name();
