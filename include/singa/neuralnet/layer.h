@@ -124,6 +124,10 @@ class Layer {
     // CHECK_LT(k, srclayers_.size());
     return kOneToOne;
   }
+
+//  virtual bool IsDPMGruLayer() const {
+//    return false;
+//  }
   /**
    * Return the connection type of this layer and all dst layers.
    *

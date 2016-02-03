@@ -212,6 +212,8 @@ message LayerProto {
   repeated UnrollConnType unroll_conn_type = 25;
   repeated int32 shift = 26;
 
+  optional bool IsDPMGruLayer = 27 [default = false];
+
   // overrides the partition dimension for neural net
   optional int32 partition_dim = 60 [default = -1];
   // names of parameters shared from other layers
