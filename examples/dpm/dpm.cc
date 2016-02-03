@@ -202,6 +202,7 @@ void UnrollV2Layer::Setup(const LayerProto& conf,
 }
 
 void UnrollV2Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
+  //LOG(ERROR) << "This is UnrollV2Layer's ComputeFeature";
   // fill information in data_
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
@@ -359,6 +360,7 @@ void DPMGruLayer::Setup(const LayerProto& conf,
 void DPMGruLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
   //LOG(ERROR) << "This is DPMGruLayer's ComputeFeature";
+  //LOG(ERROR) << "Unroll index of DPMGruLayer" << unroll_index();
   CHECK_LE(srclayers.size(), 2);
 
   // Do transpose
@@ -380,7 +382,22 @@ void DPMGruLayer::ComputeFeature(int flag,
     context = &srclayers[1]->data(this);
   }
   // Prepare the lap_time input
-  const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
+  Blob<float> lap;
+  //LOG(ERROR) << "TEST" << srclayers[0]->user_type();
+  if (srclayers[0]->user_type() == "kUnrollV3") { // DPMGruLayer needs to handle Model 2 & Model 3
+      lap = dynamic_cast<UnrollV3Layer *>(srclayers[0])->laptime_info(); // information related to lap time
+      // for testing - the output is backward order as it is in ComputeGradient
+//      LOG(ERROR) << "Forward: ";
+//      auto lap_ptr = lap.mutable_cpu_data();
+//      for(int i = 0; i < lap.shape(0); i++) {
+//          for (int j = 0; j < lap.shape(1); j++) {
+//              LOG(ERROR) << "Lap time info: " << *(lap_ptr + i * lap.shape(1) + j);
+//          }
+//      }
+  }
+  else {
+      lap = dynamic_cast<UnrollV2Layer *>(srclayers[0])->laptime_info(); // information related to lap time
+  }
   //LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
   //LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
   //LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
@@ -460,7 +477,23 @@ void DPMGruLayer::ComputeGradient(int flag,
   }
 
   // Retrieve time-related information
-  const Blob<float> lap = dynamic_cast<UnrollV2Layer*>(srclayers[0])->laptime_info(); // information related to lap time
+  //LOG(ERROR) << "TEST" << srclayers[0]->user_type();
+  Blob<float> lap;
+  if (srclayers[0]->user_type() == "kUnrollV3") { // DPMGruLayer needs to handle Model 2 & Model 3
+      lap = dynamic_cast<UnrollV3Layer *>(srclayers[0])->laptime_info(); // information related to lap time
+      // for testing - the output is backward order as it is in ComputeGradient
+//      LOG(ERROR) << "Backward: ";
+//      auto lap_ptr = lap.mutable_cpu_data();
+//      for(int i = 0; i < lap.shape(0); i++) {
+//          for (int j = 0; j < lap.shape(1); j++) {
+//              LOG(ERROR) << "Lap time info: " << *(lap_ptr + i * lap.shape(1) + j);
+//          }
+//      }
+  }
+  else {
+      lap = dynamic_cast<UnrollV2Layer *>(srclayers[0])->laptime_info(); // information related to lap time
+  }
+
   //LOG(ERROR) << "Shape size for laptime_info_: " << lap.shape().size(); // for testing
   //LOG(ERROR) << "Shape 1 for laptime_info_: " << lap.shape(0);
   //LOG(ERROR) << "Shape 2 for laptime_info_: " << lap.shape(1);
@@ -776,7 +809,7 @@ void CombinationV3Layer::Setup(const LayerProto &conf,
 }
 
 void CombinationV3Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
-  LOG(ERROR) << "Combination layer";
+  //LOG(ERROR) << "Combination layer";
   Blob<float>* tmp_time = new Blob<float>(batchsize_, hdim_); // Use "tmp_time" to store the computation result from TimeSpanUnit
   Blob<float>* tmp_demo = new Blob<float>(batchsize_, hdim_); // Use "tmp_demo" to store the computation result from DemoUnit
   if(transpose_) {
