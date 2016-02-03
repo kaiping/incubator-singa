@@ -22,6 +22,8 @@
 #include <glog/logging.h>
 #include "singa/neuralnet/loss_layer.h"
 #include "mshadow/tensor.h"
+#include "../../../include/singa/neuralnet/loss_layer.h"
+#include <math.h>
 
 namespace singa {
 
@@ -43,16 +45,31 @@ void EuclideanLossLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
   int count = srclayers[0]->data(this).count(); // kaiping: Output of InnerProduct Layer Variant
   CHECK_EQ(count, srclayers[1]->data(this).count());
-  const float* reconstruct_dptr = srclayers[0]->data(this).cpu_data();
-  const float* input_dptr = srclayers[1]->data(this).cpu_data(); // kaiping: Information of LabelLayer
+  const float* reconstruct_dptr = srclayers[0]->data(this).cpu_data(); // kaiping: prediction results, pi
+  const float* input_dptr = srclayers[1]->data(this).cpu_data(); // kaiping: Information of LabelLayer, ri
   float loss = 0;
+  float aver_p = 0;
+  float aver_r = 0;
+  float aver_p_square = 0;
+  float aver_r_square = 0;
+  float aver_p_times_r = 0;
   for (int i = 0; i < count; i++) {
       loss += (input_dptr[i] - reconstruct_dptr[i]) *
         (input_dptr[i] - reconstruct_dptr[i]);
+      aver_p += reconstruct_dptr[i];
+      aver_r += input_dptr[i];
+      aver_p_square += reconstruct_dptr[i] * reconstruct_dptr[i];
+      aver_r_square += input_dptr[i] * input_dptr[i];
+      aver_p_times_r += reconstruct_dptr[i] * input_dptr[i];
     //LOG(ERROR) << "******Loss Layer****** Ground truth value, Estimate value:  " << input_dptr[i] << "   " << reconstruct_dptr[i];
   }
-  loss_ += loss / srclayers[0]->data(this).shape()[0];
-  counter_++;
+  loss_ += loss / srclayers[0]->data(this).shape()[0]; // divided by batchsize_
+  aver_p_ += aver_p / srclayers[0]->data(this).shape()[0];
+  aver_r_ += aver_r / srclayers[0]->data(this).shape()[0];
+  aver_p_square_ += aver_p_square / srclayers[0]->data(this).shape()[0];
+  aver_r_square_ += aver_r_square / srclayers[0]->data(this).shape()[0];
+  aver_p_times_r_ += aver_p_times_r / srclayers[0]->data(this).shape()[0];
+  counter_++; // counter_ is the number of batches
 }
 
 void EuclideanLossLayer::ComputeGradient(int flag,
@@ -72,10 +89,28 @@ void EuclideanLossLayer::ComputeGradient(int flag,
 const std::string EuclideanLossLayer::ToString(bool debug, int flag) {
   if (debug)
     return Layer::ToString(debug, flag);
+  aver_p_ = aver_p_ / counter_;
+  aver_r_ = aver_r_ / counter_;
+  aver_p_square_ = aver_p_square_ / counter_;
+  aver_r_square_ = aver_r_square_ / counter_;
+  aver_p_times_r_ = aver_p_times_r_ / counter_;
 
-  string disp = "Loss = " + std::to_string(loss_ / counter_);
+  float nMSE = aver_r_square_ - aver_r_ * aver_r_;
+  float part1 = sqrt(aver_p_square_ - aver_p_ * aver_p_);
+  float part2 = sqrt(aver_r_square_ - aver_r_ * aver_r_);
+  float Rvalue = (aver_p_times_r_ - aver_r_ * aver_p_) / (part1 * part2);
+  float test = aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_;
+  string disp = "MSE = " + std::to_string(loss_ / counter_)
+    + ", nMSE = " + std::to_string(nMSE)
+    + ", R = " + std::to_string(Rvalue)
+    + ", test MSE = " + std::to_string(test);
   counter_ = 0;
   loss_ = 0;
+  aver_p_ = 0;
+  aver_r_ = 0;
+  aver_p_square_ = 0;
+  aver_r_square_ = 0;
+  aver_p_times_r_ = 0;
   return disp;
 }
 }  // namespace singa
