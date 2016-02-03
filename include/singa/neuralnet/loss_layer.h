@@ -43,8 +43,8 @@ class EuclideanLossLayer : public LossLayer {
  private:
   int counter_ = 0;
   float loss_ = 0.0f;
-  float aver_p_ = 0.0f; // sum of predicted values
-  float aver_r_ = 0.0f; // sum of label values
+  float aver_p_ = 0.0f; // average of predicted values
+  float aver_r_ = 0.0f; // average of label values
   float aver_p_square_ = 0.0f;
   float aver_r_square_ = 0.0f;
   float aver_p_times_r_ = 0.0f;
