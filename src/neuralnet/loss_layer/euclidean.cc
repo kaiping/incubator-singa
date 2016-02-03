@@ -42,7 +42,7 @@ void EuclideanLossLayer::Setup(const LayerProto& conf,
 
 void EuclideanLossLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
-  int count = srclayers[0]->data(this).count(); // kaiping: Output of InnerProduct Layer Variant
+  int count = srclayers[0]->data(this).count(); // kaiping: Output of InnerProduct Layer Variant, as we set num_output = 1, so this count is actually batchsize
   CHECK_EQ(count, srclayers[1]->data(this).count());
   const float* reconstruct_dptr = srclayers[0]->data(this).cpu_data(); // kaiping: prediction results, pi
   const float* input_dptr = srclayers[1]->data(this).cpu_data(); // kaiping: Information of LabelLayer, ri
@@ -60,7 +60,7 @@ void EuclideanLossLayer::ComputeFeature(int flag,
       aver_p_square += reconstruct_dptr[i] * reconstruct_dptr[i];
       aver_r_square += input_dptr[i] * input_dptr[i];
       aver_p_times_r += reconstruct_dptr[i] * input_dptr[i];
-    //LOG(ERROR) << "******Loss Layer****** Ground truth value, Estimate value:  " << input_dptr[i] << "   " << reconstruct_dptr[i];
+      //LOG(ERROR) << "******Loss Layer****** Ground truth value, Estimate value:  " << input_dptr[i] << "   " << reconstruct_dptr[i];
   }
   loss_ += loss / srclayers[0]->data(this).shape()[0]; // divided by batchsize_
   aver_p_ += aver_p / srclayers[0]->data(this).shape()[0];
@@ -98,18 +98,16 @@ const std::string EuclideanLossLayer::ToString(bool debug, int flag) {
   float part1 = sqrt(aver_p_square_ - aver_p_ * aver_p_);
   float part2 = sqrt(aver_r_square_ - aver_r_ * aver_r_);
   float Rvalue = (aver_p_times_r_ - aver_r_ * aver_p_) / (part1 * part2);
-  float test = aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_;
-    LOG(ERROR) << "R_top:  " << (aver_p_times_r_ - aver_r_ * aver_p_);
-    LOG(ERROR) << "R_down:  " << (part1 * part2);
-    LOG(ERROR) << "nMSE_top:  " << (aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_);
-    LOG(ERROR) << "nMSE_down:  " << (aver_r_square_ - aver_r_ * aver_r_);
+  float test = aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_; // use this value (equal to Loss to check)
+//  LOG(ERROR) << "counter:  " << counter_;
+//  LOG(ERROR) << "R_top:  " << (aver_p_times_r_ - aver_r_ * aver_p_);
+//  LOG(ERROR) << "R_down:  " << (part1 * part2);
+//  LOG(ERROR) << "nMSE_top:  " << (aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_);
+//  LOG(ERROR) << "nMSE_down:  " << (aver_r_square_ - aver_r_ * aver_r_);
   string disp = "Loss = " + std::to_string(loss_ / counter_)
     + ", nMSE = " + std::to_string(nMSE)
     + ", R = " + std::to_string(Rvalue)
     + ", testMSE = " + std::to_string(test);
-    //+ ", nMSE = " + std::to_string((aver_p_square_ / counter_ + aver_r_square_ / counter_ - 2 * aver_p_times_r_ / counter_) / ((aver_r_square_ / counter_) - (aver_r_ / counter_) * (aver_r_ / counter_)))
-    //+ ", R = " + std::to_string(((aver_p_times_r_ / counter_) - (aver_r_ / counter_) * (aver_p_ / counter_)) / ((sqrt(aver_p_square_ / counter_ - (aver_p_ / counter_) * (aver_p_ / counter_))) * (sqrt(aver_r_square_ / counter_ - (aver_r_ / counter_) * (aver_r_ / counter_)))))
-    //+ ", testMSE = " + std::to_string(aver_p_square_ / counter_ + aver_r_square_ / counter_ - 2 * aver_p_times_r_ / counter_);
   counter_ = 0;
   loss_ = 0;
   aver_p_ = 0;
