@@ -70,7 +70,7 @@ void DataLayer::Setup(const LayerProto& conf, const vector<Layer*>& srclayers) {
 }
 
 void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
-  LOG(ERROR) << "This is DataLayer's ComputeFeature";
+  //LOG(ERROR) << "This is DataLayer's ComputeFeature";
   string key, value;
   string key2, value2;
   DynamicRecord dynamic;
@@ -240,7 +240,7 @@ void UnrollV3Layer::Setup(const LayerProto& conf,
 }
 
 void UnrollV3Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
-  LOG(ERROR) << "This is UnrollV3Layer's ComputeFeature";
+  //LOG(ERROR) << "This is UnrollV3Layer's ComputeFeature";
   // fill information in data_
   float* ptr = data_.mutable_cpu_data();
   memset(ptr, 0, sizeof(float) * data_.count());
@@ -358,7 +358,7 @@ void DPMGruLayer::Setup(const LayerProto& conf,
 
 void DPMGruLayer::ComputeFeature(int flag,
     const vector<Layer*>& srclayers) {
-  LOG(ERROR) << "This is DPMGruLayer's ComputeFeature";
+  //LOG(ERROR) << "This is DPMGruLayer's ComputeFeature";
   CHECK_LE(srclayers.size(), 2);
 
   // Do transpose
