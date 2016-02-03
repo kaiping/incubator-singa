@@ -22,7 +22,6 @@
 #include <glog/logging.h>
 #include "singa/neuralnet/loss_layer.h"
 #include "mshadow/tensor.h"
-#include "../../../include/singa/neuralnet/loss_layer.h"
 #include <math.h>
 
 namespace singa {
@@ -69,7 +68,7 @@ void EuclideanLossLayer::ComputeFeature(int flag,
   aver_p_square_ += aver_p_square / srclayers[0]->data(this).shape()[0];
   aver_r_square_ += aver_r_square / srclayers[0]->data(this).shape()[0];
   aver_p_times_r_ += aver_p_times_r / srclayers[0]->data(this).shape()[0];
-  counter_++; // counter_ is the number of batches
+  counter_++; // counter_ is the number of batches between each 2 printing
 }
 
 void EuclideanLossLayer::ComputeGradient(int flag,
@@ -95,15 +94,22 @@ const std::string EuclideanLossLayer::ToString(bool debug, int flag) {
   aver_r_square_ = aver_r_square_ / counter_;
   aver_p_times_r_ = aver_p_times_r_ / counter_;
 
-  float nMSE = aver_r_square_ - aver_r_ * aver_r_;
+  float nMSE = (aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_) / (aver_r_square_ - aver_r_ * aver_r_);
   float part1 = sqrt(aver_p_square_ - aver_p_ * aver_p_);
   float part2 = sqrt(aver_r_square_ - aver_r_ * aver_r_);
   float Rvalue = (aver_p_times_r_ - aver_r_ * aver_p_) / (part1 * part2);
   float test = aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_;
-  string disp = "MSE = " + std::to_string(loss_ / counter_)
+    LOG(ERROR) << "R_top:  " << (aver_p_times_r_ - aver_r_ * aver_p_);
+    LOG(ERROR) << "R_down:  " << (part1 * part2);
+    LOG(ERROR) << "nMSE_top:  " << (aver_p_square_ + aver_r_square_ - 2 * aver_p_times_r_);
+    LOG(ERROR) << "nMSE_down:  " << (aver_r_square_ - aver_r_ * aver_r_);
+  string disp = "Loss = " + std::to_string(loss_ / counter_)
     + ", nMSE = " + std::to_string(nMSE)
     + ", R = " + std::to_string(Rvalue)
-    + ", test MSE = " + std::to_string(test);
+    + ", testMSE = " + std::to_string(test);
+    //+ ", nMSE = " + std::to_string((aver_p_square_ / counter_ + aver_r_square_ / counter_ - 2 * aver_p_times_r_ / counter_) / ((aver_r_square_ / counter_) - (aver_r_ / counter_) * (aver_r_ / counter_)))
+    //+ ", R = " + std::to_string(((aver_p_times_r_ / counter_) - (aver_r_ / counter_) * (aver_p_ / counter_)) / ((sqrt(aver_p_square_ / counter_ - (aver_p_ / counter_) * (aver_p_ / counter_))) * (sqrt(aver_r_square_ / counter_ - (aver_r_ / counter_) * (aver_r_ / counter_)))))
+    //+ ", testMSE = " + std::to_string(aver_p_square_ / counter_ + aver_r_square_ / counter_ - 2 * aver_p_times_r_ / counter_);
   counter_ = 0;
   loss_ = 0;
   aver_p_ = 0;
