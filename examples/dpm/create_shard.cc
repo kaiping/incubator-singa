@@ -18,8 +18,10 @@ char key[BUFFER_LEN];
 
 char train_file[MAX_STRING];
 char test_file[MAX_STRING];
+char valid_file[MAX_STRING];
 
 int test_mode;
+int valid_mode;
 
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
@@ -171,6 +173,25 @@ int main(int argc, char **argv) {
         printf("ERROR: training data must be set.\n");
     }
 
+    // search for valid file
+    i = argPos(const_cast<char *>("-valid"), argc, argv);
+    if (i > 0) {
+        if (i + 1 == argc) {
+            printf("ERROR: validating data file not specified!\n");
+            return 0;
+        }
+
+        snprintf(valid_file, strlen(argv[i + 1])+1, "%s", argv[i + 1]);
+
+        f = fopen(valid_file, "rb");
+        if (f == NULL) {
+            printf("ERROR: validating data file not found!\n");
+            return 0;
+        }
+        fclose(f);
+        valid_mode = 1;
+    }
+
     // search for test file
     i = argPos(const_cast<char *>("-test"), argc, argv);
     if (i > 0) {
@@ -191,6 +212,9 @@ int main(int argc, char **argv) {
     }
 
     create_data(train_file, "train_input_data.bin", "train_label_data.bin");
+    if (valid_mode) {
+        create_data(valid_file, "valid_input_data.bin", "valid_label_data.bin");
+    }
     if (test_mode) {
         create_data(test_file, "test_input_data.bin", "test_label_data.bin");
     }

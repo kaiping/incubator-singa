@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import random
 
 priority_m00 = ['bl', 'sc']
 ignore_features = ['PTDOBMM', 'PTDOBYY', 'USERDATE', 'PTEDUCAT', 'PTGENDER']
@@ -39,10 +40,14 @@ if __name__ == '__main__':
     # input parameters
     csv_file_path = 'ckd_1year/TEST_REMOVE_EMPTY.csv'
     cut_point = 13
-    test_ratio = 0.1
-    test_index = 1 # The index starts from 1
+    #test_ratio = 0.1
+    #valid_ratio = 0.09
+    ratio_train_valid = 0.81
+    ratio_valid_test = 0.9
+    test_index = -1 # Use -1 to represent random sampling, NEVER change this value
     label_feature = 'MMSCORE'
     test_file_path = 'test.shard'
+    valid_file_path = 'valid.shard'
     train_file_path = 'train.shard'
 
     # load csv data
@@ -195,14 +200,28 @@ if __name__ == '__main__':
 
     # write output file
     total_sample = len(sample_lines)
-    test_start = (test_index - 1) * int(total_sample * test_ratio)
-    test_end = test_start + int(total_sample * test_ratio)
-    test_end = min(total_sample, test_end)
+
+    # select random subsection as train data, valid data and test data respectively
+    random.shuffle(sample_lines)
+    split_train_valid = int(total_sample * ratio_train_valid)
+    split_valid_test = int(total_sample * ratio_valid_test)
+    train_data = sample_lines[:split_train_valid]
+    valid_data = sample_lines[split_train_valid:split_valid_test]
+    test_data = sample_lines[split_valid_test:]
+
+    # print len(train_data)
+    # print len(valid_data)
+    # print len(test_data)
+    # print len(train_data) + len(valid_data) + len(test_data)
 
     # write test shard file
     with open(test_file_path, 'w') as f:
-        f.writelines(sample_lines[idx] + '\n' for idx in range(test_start, test_end))
+         f.writelines(test_data[idx] + '\n' for idx in range(len(test_data)))
+
+    # write valid shard file
+    with open(valid_file_path, 'w') as f:
+        f.writelines(valid_data[idx] + '\n' for idx in range(len(valid_data)))
 
     # write train shard file
     with open(train_file_path, 'w') as f:
-        f.writelines(sample_lines[idx] + '\n' for idx in range(total_sample) if not test_start <= idx < test_end)
+        f.writelines(train_data[idx] + '\n' for idx in range(len(train_data)))
