@@ -1,0 +1,17 @@
+line 17 is parse items:
+0, -1, 1 means: 0 idx of ^A, any idx of ^B, 1 idx of ^C, it is lap_time
+1,1 means: 1 idx of ^A, 1 idx of ^B, it is delta_time
+
+this script can output a visible cvs file for every inputed parse item.
+
+FYI:
+feature_part^Alabel_part
+
+feature_part:
+record1^Brecord2^B...
+
+for each record:
+pid^Clap_time^Cidx1^Didx2...^Cval1^Dval2^D...^Cage^Cedu^Cgender
+
+label_part:
+pid^Bdelta_time^Blabel_value^Bf_cnt
