@@ -1,3 +1,4 @@
+# Use "##" to denote the comments special for the "white list functionality"
 import sys
 import numpy as np
 import random
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     csv_file_path = 'ckd_1year/TEST_REMOVE_EMPTY.csv'
     cut_point = 13
 
-    test_ratio = 0.1
+    test_ratio = 0.1  ## Use 0.1, 0.09 instead of 0.81, 0.9
     valid_ratio = 0.09
     test_index = -1  # -1 randomly pick based by ratios; otherwise valid mode disable.
 
@@ -51,12 +52,12 @@ if __name__ == '__main__':
     train_file_path = 'train.shard'
 
     # only consider those viscode in white list, None means all valid viscodes beside cutpoint.
-    input_white_list = None
+    input_white_list = None ## Add the functionality of white list
     output_white_list = None
 
     # option for lap time normalization
-    lap_time_norm = True
-    include_delta_time = True
+    lap_time_norm = True ## Add the functionality of normalizing lap_time
+    include_delta_time = True ## Add the functionality of choosing whether to normalize the delta_time together; Note: cannot only normalize delta_time
 
     # load csv data
     with open(csv_file_path, 'r') as f:
@@ -91,7 +92,7 @@ if __name__ == '__main__':
             assert 'm' == viscode[0]
             num = int(viscode[1:])
             viscode_dict_num[viscode] = num
-            if num < cut_point:
+            if num < cut_point: ## Prepare pre list and post list divided by cut_point
                 pre_cut_viscode.append(viscode)
             else:
                 post_cut_viscode.append(viscode)
@@ -99,7 +100,7 @@ if __name__ == '__main__':
             pass
 
     # generate default input/output viscode white list
-    if input_white_list is None:
+    if input_white_list is None: ## If no explicit white list provided, then use pre list and post list
         input_white_list = pre_cut_viscode
     input_white_list = set(input_white_list)
     if output_white_list is None:
@@ -250,7 +251,7 @@ if __name__ == '__main__':
         sample_lines[idx] = sample_lines[idx].format(*args)
 
     # distribute samples for train, valid and test
-    if test_index == -1:
+    if test_index == -1: ## Change the implementation of random sampling
         test_sample_set = set(random.sample(range(total_sample), int(total_sample * test_ratio)))
     else:
         test_start = (test_index - 1) * int(total_sample * test_ratio)
