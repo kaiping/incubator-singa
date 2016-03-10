@@ -40,10 +40,12 @@ if __name__ == '__main__':
     # input parameters
     csv_file_path = 'ckd_1year/TEST_REMOVE_EMPTY.csv'
     cut_point = 13
+    #cut_point = 25 # For a second experimental setting
 
     test_ratio = 0.1
-    valid_ratio = 0.09
-    test_index = -1  # -1 randomly pick based by ratios; otherwise valid mode disable.
+    #valid_ratio = 0.09
+    valid_ratio = 0 # Only use training data and testing data in this experimental setting
+    test_index = 1  # Pick the 1st part of data as testing data -> For more fair comparison
 
     label_feature = 'MMSCORE'
     test_file_path = 'test.shard'
@@ -51,12 +53,63 @@ if __name__ == '__main__':
     train_file_path = 'train.shard'
 
     # only consider those viscode in white list, None means all valid viscodes beside cutpoint.
-    input_white_list = None
+    #input_white_list = None
+    #output_white_list = None
+
+    #### Experimental Setting 1 - 7 time points
+
+    ## Sub-Setting 1 - cutpoint = M13
+    # 1)
+    input_white_list = ['m12']
+    # 2)
+    #input_white_list = ['m06', 'm12']
+    # 3)
+    #input_white_list = ['m00', 'm06', 'm12']
+
+    ## Sub-Setting 2 - cutpoint = M25
+    # 1)
+    #input_white_list = ['m24']
+    # 2)
+    #input_white_list = ['m18', 'm24']
+    # 3)
+    #input_white_list = ['m12','m18', 'm24']
+    # 4)
+    #input_white_list = ['m06', 'm12','m18', 'm24']
+    # 5)
+    #input_white_list = ['m00', 'm06', 'm12','m18', 'm24']
+
     output_white_list = None
 
+    #### Experimental Setting 2 - 6 time points
+
+    ## Sub-Setting 1 - cutpoint = M13
+    # 1)
+    #input_white_list = ['m12']
+    # 2)
+    #input_white_list = ['m06', 'm12']
+    # 3)
+    #input_white_list = ['m00', 'm06', 'm12']
+
+    #output_white_list= ['m24', 'm36', 'm48']
+
+    ## Sub-Setting 2 - cutpoint = M25
+    # 1)
+    #input_white_list = ['m24']
+    # 2)
+    #input_white_list = ['m12', 'm24']
+    # 3)
+    #input_white_list = ['m06', 'm12', 'm24']
+    # 4)
+    #input_white_list = ['m00', 'm06', 'm12', 'm24']
+
+    #output_white_list= ['m36', 'm48']
+
+
     # option for lap time normalization
-    lap_time_norm = True
-    include_delta_time = True
+    #lap_time_norm = True
+    lap_time_norm = False # Not normalize time-related features in this experimental setting
+    #include_delta_time = True
+    include_delta_time = False
 
     # load csv data
     with open(csv_file_path, 'r') as f:
