@@ -63,7 +63,9 @@ if __name__ == '__main__':
         data.setdefault(datum[RID], dict()).setdefault(datum[TIME], dict())[datum[FEATURE_NAME]] = datum[FEATURE_VALUE]
         viscode_set.add(datum[TIME])
         feature_set.add(datum[FEATURE_NAME])
+    #print "Length of previous all features: ", len(feature_set); #[kp] - this prints "597" as the count of all features
     feature_set -= set(ignore_features)
+    #print "Length of all features: ", len(feature_set); #[kp] - this prints "592" as the count of all non-demographical features
 
     # construct m00 viscode
     for rid in data:
@@ -106,7 +108,7 @@ if __name__ == '__main__':
             features.setdefault('GENDER', []).append(sex)
         except (AttributeError, TypeError):
             pass
-
+    #print "Length of features: ", len(features); #[kp] - print "3" as this "features" store constant features
     # collect all chosen feature for normalization
     for rid in constant_features:
         f_cnt = 0  # this variable name inherit from the orginal
