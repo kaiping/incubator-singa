@@ -213,9 +213,9 @@ void UnrollV2Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
   for (int b = 0; b < batchsize_; b++) { // 3 demographical features + lap_time information
       ptr[b * (feature_len_ - 3) + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
-      ptr[b * (feature_len_ - 3) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
-      //ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
-      //ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time not included in data_
+      //ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * (feature_len_ - 3) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // gen
+      //ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time not included in data_
 
       // fill information into laptime_info_
       ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time
