@@ -132,21 +132,21 @@ void DataLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
         }
         float* ptr = datavec_[l]->mutable_cpu_data();
         ptr[b * feature_len_ + 0] = static_cast<float>(dynamic.age());  // feature_len_ is 596 (4 <3 demo features and lap_time> + 592)
-        ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.education());
-        ptr[b * feature_len_ + 2] = static_cast<float>(dynamic.gender());
-        ptr[b * feature_len_ + 3] = static_cast<float>(dynamic.lap_time());
+        //ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.education());
+        ptr[b * feature_len_ + 1] = static_cast<float>(dynamic.gender());
+        ptr[b * feature_len_ + 2] = static_cast<float>(dynamic.lap_time());
 //         LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " age " << ptr[b * feature_len_ + 0];
 //         LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " edu " << ptr[b * feature_len_ + 1];
 //         LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " gender " << ptr[b * feature_len_ + 2];
 //         LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " lt " << ptr[b * feature_len_ + 3];
 
          // all zero
-        for (int i=4; i<feature_len_-2; i++)
+        for (int i=3; i<feature_len_-2; i++)
            ptr[b * feature_len_ + i] = 0;
         // except the observed
         for (int k=0; k<dynamic.feature_value_size(); k++) {
            int idx = dynamic.observed_idx(k);
-           ptr[b * feature_len_ + 4 + idx] = static_cast<float>(dynamic.feature_value(k));
+           ptr[b * feature_len_ + 3 + idx] = static_cast<float>(dynamic.feature_value(k));
            //LOG(ERROR) << "Patient ID: " << dynamic.patient_id() << " Detailed features: " << "(l,b)=(" << l << "," << b << ")" << static_cast<float>(dynamic.feature_value(k));
         }
 //        for (int i=4; i<feature_len_-2; i++) {
@@ -177,14 +177,14 @@ void UnrollLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
   for (int b = 0; b < batchsize_; b++) { // 4 demographical features
       ptr[b * (feature_len_ - 2) + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
-      ptr[b * (feature_len_ - 2) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
-      ptr[b * (feature_len_ - 2) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
-      ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+      //ptr[b * (feature_len_ - 2) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * (feature_len_ - 2) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // gen
+      ptr[b * (feature_len_ - 2) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time
 //      LOG(ERROR) << "data_ for UnrollLayer: age " <<ptr[b * (feature_len_ - 2) + 0]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: edu " <<ptr[b * (feature_len_ - 2) + 1]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: gen " <<ptr[b * (feature_len_ - 2) + 2]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: lt " <<ptr[b * (feature_len_ - 2) + 3]  ;
-      for (int i=4; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
+      for (int i=3; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
           ptr[b * (feature_len_ - 2) + i] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
 //          LOG(ERROR) << "data_ for UnrollLayer: " <<ptr[b * (feature_len_ - 2) + i] ;
       }
@@ -213,17 +213,17 @@ void UnrollV2Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   const float* idx = srclayers[0]->data(unroll_index()).cpu_data();
   for (int b = 0; b < batchsize_; b++) { // 3 demographical features + lap_time information
       ptr[b * (feature_len_ - 3) + 0] = static_cast<float>( idx[b * feature_len_ + 0] );  // age
-      ptr[b * (feature_len_ - 3) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
-      ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
-      //ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time not included in data_
+      //ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 1] );  // edu
+      ptr[b * (feature_len_ - 3) + 1] = static_cast<float>( idx[b * feature_len_ + 1] );  // gen
+      //ptr[b * (feature_len_ - 2) + 3] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time not included in data_
 
       // fill information into laptime_info_
-      ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+      ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time
 //      LOG(ERROR) << "data_ for UnrollLayer: age " <<ptr[b * (feature_len_ - 2) + 0]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: edu " <<ptr[b * (feature_len_ - 2) + 1]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: gen " <<ptr[b * (feature_len_ - 2) + 2]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: lt " <<ptr[b * (feature_len_ - 2) + 3]  ;
-      for (int i=4; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
+      for (int i=3; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
           ptr[b * (feature_len_ - 3) + (i - 1)] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
 //          LOG(ERROR) << "data_ for UnrollLayer: " <<ptr[b * (feature_len_ - 2) + i] ;
       }
@@ -236,7 +236,7 @@ void UnrollV3Layer::Setup(const LayerProto& conf,
   InputLayer::Setup(conf, srclayers);
   batchsize_ = srclayers.at(0)->data(unroll_index()).shape(0);
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();  // feature_len_ is 598 = 4 (3 demo + lap_time) + 592 + 2
-  data_.Reshape(batchsize_, feature_len_ - 6);  // reshape data for each unit, do NOT include lap_time, 3 demo features in data_
+  data_.Reshape(batchsize_, feature_len_ - 5);  // reshape data for each unit, do NOT include lap_time, 3 demo features in data_
   laptime_info_.Reshape(batchsize_, 1); // for 1 patient in 1 Unroll part/GRU part, only 1 dimension of feature
 }
 
@@ -256,13 +256,13 @@ void UnrollV3Layer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
       //ptr[b * (feature_len_ - 3) + 2] = static_cast<float>( idx[b * feature_len_ + 2] );  // gen
 
       // fill information into laptime_info_
-      ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 3] );  // lap_time
+      ptr_time[b * 1 + 0] = static_cast<float>( idx[b * feature_len_ + 2] );  // lap_time
 //      LOG(ERROR) << "data_ for UnrollLayer: age " <<ptr[b * (feature_len_ - 2) + 0]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: edu " <<ptr[b * (feature_len_ - 2) + 1]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: gen " <<ptr[b * (feature_len_ - 2) + 2]  ;
 //      LOG(ERROR) << "data_ for UnrollLayer: lt " <<ptr[b * (feature_len_ - 2) + 3]  ;
-      for (int i=4; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
-          ptr[b * (feature_len_ - 6) + (i - 4)] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
+      for (int i=3; i<feature_len_-2; i++) { // (feature_len_ - 6) = 592 features
+          ptr[b * (feature_len_ - 5) + (i - 3)] = static_cast<float>( idx[b * feature_len_ + i] );  // feature_value
 //          LOG(ERROR) << "data_ for UnrollLayer: " <<ptr[b * (feature_len_ - 2) + i] ;
       }
   }

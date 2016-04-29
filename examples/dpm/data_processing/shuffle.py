@@ -1,11 +1,11 @@
 import random
 
-ratio = 0.81
+ratio = 0.9 # No validation data for the first run
 ratio2 = 0.9
 f = open("shard_input", "r")
-train = open("nuhs_train", "w")
-validate = open("nuhs_validation", "w")
-test = open("nuhs_test", "w")
+train = open("train.shard", "w")
+validate = open("valid.shard", "w")
+test = open("test.shard", "w")
 
 data = f.readlines()
 
