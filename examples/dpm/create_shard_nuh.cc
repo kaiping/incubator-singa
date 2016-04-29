@@ -48,14 +48,14 @@ void insert_feature_shard(const std::string &feature_string, singa::io::Store *s
         int pid = atoi(items[0].c_str());
         int lt = atoi(items[1].c_str());
         float age = atof(items[4].c_str());
-        float edu = atof(items[5].c_str());
-        float gen = atof(items[6].c_str());
-        int scnt = atoi(items[7].c_str());
+        //float edu = atof(items[5].c_str());
+        float gen = atof(items[5].c_str());
+        int scnt = atoi(items[6].c_str());
 
         dynamicRecord.set_patient_id(pid);
         dynamicRecord.set_lap_time(lt);
         dynamicRecord.set_age(age);
-        dynamicRecord.set_education(edu);
+        //dynamicRecord.set_education(edu);
         dynamicRecord.set_gender(gen);
         dynamicRecord.set_nb_sample(scnt);
 
