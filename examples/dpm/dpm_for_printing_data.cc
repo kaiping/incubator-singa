@@ -18,6 +18,7 @@
 * under the License.
 *
 *************************************************************/
+// Originally this is from dpm_nuh.cc file
 #include "./dpm.h"
 
 #include <string>
@@ -30,6 +31,7 @@
 #include "singa/utils/singa_op.h"
 #include "./dpm.pb.h"
 #include "../../include/singa/utils/singa_op.h"
+#include "dpm_for_printing_data.h"
 
 namespace dpm {
 using std::vector;
@@ -628,6 +630,13 @@ void DPMDemoLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
 }
 
 /*******DPMLabelLayer**************/
+DPMLabelLayer::~DPMLabelLayer() {
+  fin_train_data.close();
+  fin_train_label.close();
+  fin_test_data.close();
+  fin_test_label.close();
+}
+
 void DPMLabelLayer::Setup(const LayerProto& proto,
     const vector<Layer*>& srclayers) {
   InputLayer::Setup(proto, srclayers);
@@ -636,6 +645,10 @@ void DPMLabelLayer::Setup(const LayerProto& proto,
   feature_len_ = dynamic_cast<DataLayer*>(srclayers[0])->feature_len();
   unroll_len_ = dynamic_cast<DataLayer*>(srclayers[0])->unroll_len();
   data_.Reshape(batchsize_, 1);
+  fin_train_data.open("train_data");
+  fin_train_label.open("train_label");
+  fin_test_data.open("test_data");
+  fin_test_label.open("test_label");
 }
 
 void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
@@ -645,6 +658,56 @@ void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
   for (int b = 0; b < batchsize_; b++) {
     ptr[b] = static_cast<int>(idx[b * feature_len_ + feature_len_ - 1]);  // mmscore
 //    LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b];
+  }
+  // printing for testing phase
+  if(flag & 4 != 0) {
+      // printing label information
+      const float* test_label = srclayers[0]->data(unroll_len_-1).cpu_data();
+      for (int test_label_bs = 0; test_label_bs < batchsize_; test_label_bs++) {
+          fin_test_label << static_cast<int>(test_label[test_label_bs * feature_len_ + feature_len_ - 1]) << std::endl;
+      }
+      // printing data information
+      for (int test_data_bs = 0; test_data_bs < batchsize_; test_data_bs++) {
+          string dat = ""; // 1 sample/patient corresponds to 1 line in the output file
+          for (int test_data_unroll = 0; test_data_unroll < unroll_len_; test_data_unroll++) {
+              const float* test_data = srclayers[0]->data(test_data_unroll).cpu_data();
+              for (int test_feature = 0; test_feature < feature_len_ - 1; test_feature++) {
+                  dat += static_cast<float>(test_data[test_data_bs * feature_len_ + test_feature]);
+                  if ((test_data_unroll == unroll_len_ - 1) && (test_feature == feature_len_ - 2)) { // the last feature
+                      dat += "\n";
+                  }
+                  else {
+                      dat += ",";
+                  }
+              }
+          }
+          fin_test_data << dat;
+      }
+  }
+  // printing for training phase
+  if(flag & 1 != 0) {
+      // printing label information
+      const float* train_label = srclayers[0]->data(unroll_len_-1).cpu_data();
+      for (int train_label_bs = 0; train_label_bs < batchsize_; train_label_bs++) {
+          fin_train_label << static_cast<int>(train_label[train_label_bs * feature_len_ + feature_len_ - 1]) << std::endl;
+      }
+      // printing data information
+      for (int train_data_bs = 0; train_data_bs < batchsize_; train_data_bs++) {
+          string dat2 = ""; // 1 sample/patient corresponds to 1 line in the output file
+          for (int train_data_unroll = 0; train_data_unroll < unroll_len_; train_data_unroll++) {
+              const float* train_data = srclayers[0]->data(train_data_unroll).cpu_data();
+              for (int train_feature = 0; train_feature < feature_len_ - 1; train_feature++) {
+                  dat2 += static_cast<float>(train_data[train_data_bs * feature_len_ + train_feature]);
+                  if ((train_data_unroll == unroll_len_ - 1) && (train_feature == feature_len_ - 2)) { // the last feature
+                      dat2 += "\n";
+                  }
+                  else {
+                      dat2 += ",";
+                  }
+              }
+          }
+          fin_train_data << dat2;
+      }
   }
 }
 

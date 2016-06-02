@@ -18,7 +18,7 @@
 * under the License.
 *
 *************************************************************/
-
+// Originally this is from dpm_nuh.h file
 #ifndef EXAMPLES_DPM_DPM_H_
 #define EXAMPLES_DPM_DPM_H_
 
@@ -31,6 +31,7 @@
 #include "singa/proto/common.pb.h"
 #include "singa/utils/context.h"
 #include "singa/utils/singleton.h"
+#include <fstream>
 
 namespace dpm {
 using std::vector;
@@ -174,12 +175,15 @@ class DPMDemoLayer : public singa::InputLayer {
  */
 class DPMLabelLayer : public singa::InputLayer {
  public:
+  ~DPMLabelLayer();
   void Setup(const LayerProto& conf, const vector<Layer*>& srclayers) override;
   void ComputeFeature(int flag, const vector<Layer*>& srclayers) override;
  private:
   int batchsize_, feature_len_, unroll_len_;
-  std::ofstream fin_train;
-  std::ofstream fin_test;
+  std::ofstream fin_train_data;
+  std::ofstream fin_train_label;
+  std::ofstream fin_test_data;
+  std::ofstream fin_test_label;
 };
 
 /**
