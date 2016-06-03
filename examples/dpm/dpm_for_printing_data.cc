@@ -677,7 +677,7 @@ void DPMLabelLayer::ComputeFeature(int flag, const vector<Layer*>& srclayers) {
 //    LOG(ERROR) << "data_ for DPMLabelLayer: " << ptr[b];
   }
   // printing for testing phase
-  if(flag & singa::kTest != 0) {
+  if((flag & singa::kTest) != 0) {
       LOG(ERROR) << "flag: " << flag;
       int info = flag & singa::kTest;
       LOG(ERROR) << "info: " << info;
