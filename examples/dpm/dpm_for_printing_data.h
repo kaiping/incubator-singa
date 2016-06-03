@@ -182,8 +182,10 @@ class DPMLabelLayer : public singa::InputLayer {
   int batchsize_, feature_len_, unroll_len_;
   std::ofstream fin_train_data;
   std::ofstream fin_train_label;
+  std::ofstream fin_train_time;
   std::ofstream fin_test_data;
   std::ofstream fin_test_label;
+  std::ofstream fin_test_time;
 };
 
 /**
