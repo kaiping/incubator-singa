@@ -6,6 +6,7 @@ RELATIVE_CUT_POINT = 3600 * 24 * 30 * 12 # Relative cutpoint(if need finer info:
 GRANUALARITY = 3600 * 24 # DAY as the window size
 #GRANUALARITY = 3600 * 24 * 7 # Week as the window size
 #GRANUALARITY = 3600 * 24 * 30  Month as the window size
+THRESHOLD_RECORD_NUM = 50 # threshold on record number before cutpoint
 
 ctrlA = '\001'
 ctrlB = '\002'
@@ -148,30 +149,34 @@ if __name__ == '__main__':
     ]
 
     nric_time_featurecode_count = dict()
-    feature_exist = set() # for organizing features appearing before cutpoint and indexing them
     for nric in nric_age:
-        nric_timeset = set()
         for feature_dict in feature_dicts:
             for time in feature_dict[nric].keys(): # for each category of features, for each day, need to aggregate (the same feature may appear multiple times in the same GRANULARITY)
                 if time < (nric_starttime[nric] + (RELATIVE_CUT_POINT / GRANUALARITY)): # only add the features before cutpoint
-                    nric_timeset.add(time)
                     for code in feature_dict[nric][time].keys():
                         nric_time_featurecode_count.setdefault(nric, dict()).setdefault(time, dict()).setdefault(code, 0.0)
                         nric_time_featurecode_count[nric][time][code] += feature_dict[nric][time][code]
-                        feature_exist.add(code)
-        nric_recordnum[nric] = len(nric_timeset)
-        print "Number of records before CP for patient ", nric, " ", nric_recordnum[nric]
-    print "feature num: ", len(feature_exist) # 5082, need to check again
 
-    # count the maximum count value for each feature
-    # feature_code -> maximum count value
+    for nric in nric_age: # scan the time for records in time order and delete latter ones
+        for del_time in sorted(nric_time_featurecode_count[nric].keys(), key=lambda x:int(x))[THRESHOLD_RECORD_NUM:]:
+            nric_time_featurecode_count[nric].pop(del_time)
+
+    # organize features appearing before cutpoint and indexing them
+    feature_exist = set()
+    # count the maximum count value for each feature: feature_code -> maximum count value
     feature_max = dict()
     for nric in nric_age:
+        nric_timeset = set()
         for time in nric_time_featurecode_count[nric].keys():
+            nric_timeset.add(time)
             for code in nric_time_featurecode_count[nric][time].keys():
                 cur_value = nric_time_featurecode_count[nric][time][code]
                 pre_value = feature_max.setdefault(code, 0.0)
                 feature_max[code] = max(pre_value, cur_value)
+                feature_exist.add(code)
+        nric_recordnum[nric] = len(nric_timeset)
+        print "Number of records before CP for patient ", nric, " ", nric_recordnum[nric]
+    print "feature num: ", len(feature_exist) # need to check again
 
     # encode all medical features with index
     feature_idx = dict()
@@ -179,13 +184,14 @@ if __name__ == '__main__':
         feature_idx[code] = idx
 
 
-    ### Step3. Write to shard-format file
+    ### Step3. Write to shard-format file (calculate lap_time and delta_time)
     sample_lines = []
     for nric in nric_time_featurecode_count:
         if nric not in label_nric_time_value:
             print "patient: ", nric, " only have feature input, but not have label information"
             continue
         print "Used patient: ", nric, "have both feature input and label information"
+        pre_last_time = nric_starttime[nric] # pre_last_time comes with each NRIC
         # for patients have both feature input and label output
         # 1) prepare input part
         # prepare time-dependent features (3 time-indepedent fetaures (age, gender, recordnum already in three dict()))
@@ -193,7 +199,6 @@ if __name__ == '__main__':
         observed_idx = []
         feature_value = []
         for cur_time in sorted(nric_time_featurecode_count[nric].keys(), key=lambda x:int(x)): # iterate time (with the features for one patient) in time order; not order the dict
-            pre_last_time = nric_starttime[nric]
             lap_time = cur_time - pre_last_time
             assert lap_time >= 0
             pre_last_time = cur_time # absolute time point, at last will be the last timepoint before cutpoint
